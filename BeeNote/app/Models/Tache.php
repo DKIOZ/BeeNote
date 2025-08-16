@@ -40,6 +40,11 @@ class Tache extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function team()
+    {
+        return $this->belongsTo(Team::class);
+    }
+
     public function rucher()
     {
         return $this->belongsTo(Rucher::class);  // nullable - tâche générale du rucher

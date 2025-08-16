@@ -18,12 +18,13 @@ class Rucher extends Model
         'description',   // ✅ L'utilisateur peut le définir
     ];
 
-    public function user()
+    public function team()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Team::class);
     }
-
-    public function ruches() {
+    
+    public function ruches()
+    {
         return $this->hasMany(Ruche::class);
     }
 }

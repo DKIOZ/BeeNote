@@ -21,19 +21,17 @@ class Ruche extends Model
         'notes',   // ✅ L'utilisateur peut le définir
     ];
 
-    public function user()
+    public function team()
     {
-        $this->hasOneThrough(
-            User::class,         // 1. Modèle final qu'on veut atteindre
-            Rucher::class,       // 2. Modèle intermédiaire par lequel on passe
-            'id',               // 3. Clé primaire du modèle intermédiaire (ruchers.id)
-            'id',              // 4. Clé primaire du modèle final (users.id)
-            'rucher_id',        // 5. Foreign key dans la table courante (ruches.rucher_id)
-            'user_id'     // 6. Foreign key dans le modèle intermédiaire (ruchers.user_id)
-        );
-
-        // Ou plus simple et Laravel devine tout avec les conventions
-        // return $this->hasOneThrough(User::class, Rucher::class);
+        // $this->hasOneThrough(
+        //     User::class,         // 1. Modèle final qu'on veut atteindre
+        //     Rucher::class,       // 2. Modèle intermédiaire par lequel on passe
+        //     'id',               // 3. Clé primaire du modèle intermédiaire (ruchers.id)
+        //     'id',              // 4. Clé primaire du modèle final (users.id)
+        //     'rucher_id',        // 5. Foreign key dans la table courante (ruches.rucher_id)
+        //     'user_id'     // 6. Foreign key dans le modèle intermédiaire (ruchers.user_id)
+        // );
+        return $this->hasOneThrough(Team::class, Rucher::class);
     }
 
     public function rucher()

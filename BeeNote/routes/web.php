@@ -21,4 +21,7 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    // ✅ Ajouter cette ligne :
+    Route::resource('ruchers', \App\Http\Controllers\RucherController::class);
 });
