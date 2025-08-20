@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Rucher;
 use Illuminate\Http\Request;
+use App\Services\RucherService;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\StoreRucherRequest;
 use Inertia\Inertia;  // ✅ Import Inertia
 
 class RucherController extends Controller
@@ -27,15 +29,21 @@ class RucherController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('Ruchers/Create');
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreRucherRequest  $request)
     {
-        //
+        $rucher = RucherService::createForTeam(
+            $request->validated(),
+            $request->user()
+        );
+
+        return redirect()->route('ruchers.index')
+            ->with('message', 'Rucher créé avec succès !');
     }
 
     /**
