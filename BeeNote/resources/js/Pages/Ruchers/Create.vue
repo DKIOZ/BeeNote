@@ -1,23 +1,25 @@
 <template>
     <AppLayout title="Créer un Rucher">
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="text-lg sm:text-xl font-medium text-gray-900">
                 Créer un nouveau rucher
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
+        <div class="py-6 sm:py-8 lg:py-12">
+            <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
 
-                    <form @submit.prevent="submit">
+                    <form @submit.prevent="submit" class="space-y-6">
+                        
                         <!-- Nom du rucher -->
-                        <div class="mb-4">
-                            <label for="nom" class="block text-sm font-medium text-gray-700">
+                        <div>
+                            <label for="nom" class="block text-sm font-medium text-gray-900 mb-2">
                                 Nom du rucher *
                             </label>
                             <input id="nom" v-model="form.nom" type="text"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                placeholder="Ex: Rucher des Acacias"
                                 required />
                             <div v-if="form.errors.nom" class="text-red-600 text-sm mt-1">
                                 {{ form.errors.nom }}
@@ -25,20 +27,24 @@
                         </div>
 
                         <!-- Localisation avec autocomplete -->
-                        <div class="mb-4">
-                            <label for="localisation" class="block text-sm font-medium text-gray-700">
+                        <div>
+                            <label for="localisation" class="block text-sm font-medium text-gray-900 mb-2">
                                 Localisation
                             </label>
                             <div class="relative">
-                                <input id="localisation" v-model="form.localisation" @input="searchPlaces"
-                                    @focus="showSuggestions = true" type="text"
+                                <input id="localisation" 
+                                    v-model="form.localisation" 
+                                    @input="searchPlaces"
+                                    @focus="showSuggestions = true" 
+                                    @blur="hideSuggestions"
+                                    type="text"
                                     placeholder="Tapez votre ville, département..."
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
                                     autocomplete="off" />
 
                                 <!-- Loading indicator -->
-                                <div v-if="searchLoading" class="absolute right-3 top-3">
-                                    <svg class="animate-spin h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24">
+                                <div v-if="searchLoading" class="absolute right-3 top-2.5">
+                                    <svg class="animate-spin h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                             stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor"
@@ -49,13 +55,13 @@
 
                                 <!-- Suggestions dropdown -->
                                 <div v-if="showSuggestions && suggestions.length > 0"
-                                    class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                    class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-sm shadow-lg max-h-60 overflow-y-auto">
                                     <ul class="py-1">
                                         <li v-for="place in suggestions" :key="place.properties.id"
                                             @click="selectPlace(place)"
-                                            class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm">
-                                            <div class="font-medium">{{ place.properties.name }}</div>
-                                            <div class="text-gray-500 text-xs">
+                                            class="px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                                            <div class="text-sm font-medium text-gray-900">{{ place.properties.name }}</div>
+                                            <div class="text-xs text-gray-600">
                                                 {{ place.properties.context }}
                                             </div>
                                         </li>
@@ -69,23 +75,25 @@
                         </div>
 
                         <!-- Coordonnées GPS -->
-                        <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label for="latitude" class="block text-sm font-medium text-gray-700">
+                                <label for="latitude" class="block text-sm font-medium text-gray-900 mb-2">
                                     Latitude
                                 </label>
                                 <input id="latitude" v-model="form.latitude" type="number" step="any"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                                    class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                    placeholder="47.123456" />
                                 <div v-if="form.errors.latitude" class="text-red-600 text-sm mt-1">
                                     {{ form.errors.latitude }}
                                 </div>
                             </div>
                             <div>
-                                <label for="longitude" class="block text-sm font-medium text-gray-700">
+                                <label for="longitude" class="block text-sm font-medium text-gray-900 mb-2">
                                     Longitude
                                 </label>
                                 <input id="longitude" v-model="form.longitude" type="number" step="any"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                                    class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                    placeholder="-0.123456" />
                                 <div v-if="form.errors.longitude" class="text-red-600 text-sm mt-1">
                                     {{ form.errors.longitude }}
                                 </div>
@@ -93,27 +101,28 @@
                         </div>
 
                         <!-- Description -->
-                        <div class="mb-6">
-                            <label for="description" class="block text-sm font-medium text-gray-700">
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-900 mb-2">
                                 Description
                             </label>
-                            <textarea id="description" v-model="form.description" rows="3"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                            <textarea id="description" v-model="form.description" rows="4"
+                                class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm leading-relaxed resize-none focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                placeholder="Décrivez votre rucher (environnement, accès, particularités...)"></textarea>
                             <div v-if="form.errors.description" class="text-red-600 text-sm mt-1">
                                 {{ form.errors.description }}
                             </div>
                         </div>
 
                         <!-- Boutons -->
-                        <div class="flex items-center justify-end space-x-4">
+                        <div class="flex flex-col gap-3 pt-4 sm:flex-row sm:justify-end">
                             <Link :href="route('ruchers.index')"
-                                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                            Annuler
+                                class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-sm font-medium py-3 px-4 rounded-sm text-center sm:w-auto">
+                                Annuler
                             </Link>
                             <button type="submit" :disabled="form.processing"
-                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50">
+                                class="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm disabled:opacity-50 sm:w-auto">
                                 <span v-if="form.processing">Création...</span>
-                                <span v-else>Créer le rucher</span>
+                                <span v-else">Créer le rucher</span>
                             </button>
                         </div>
                     </form>

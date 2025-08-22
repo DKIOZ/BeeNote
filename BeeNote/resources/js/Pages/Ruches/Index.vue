@@ -1,35 +1,37 @@
 <template>
     <AppLayout :title="`Ruches de ${rucher.nom}`">
         <template #header>
-            <div class="flex flex-col space-y-2">
+            <div class="space-y-3">
                 <!-- Breadcrumbs -->
-                <nav class="text-sm text-gray-500">
-                    <Link :href="route('ruchers.index')" class="hover:text-gray-700">
-                    Mes Ruchers
-                    </Link>
-                    <span class="mx-2">›</span>
-                    <Link :href="route('ruchers.show', rucher.id)" class="hover:text-gray-700">
-                    {{ rucher.nom }}
-                    </Link>
-                    <span class="mx-2">›</span>
-                    <span class="text-gray-900">Ruches</span>
+                <nav class="text-xs text-gray-600 overflow-x-auto">
+                    <div class="flex items-center gap-1 whitespace-nowrap">
+                        <Link :href="route('ruchers.index')" class="hover:text-gray-900">
+                        Ruchers
+                        </Link>
+                        <span>›</span>
+                        <Link :href="route('ruchers.show', rucher.id)" class="hover:text-gray-900">
+                        {{ rucher.nom }}
+                        </Link>
+                        <span>›</span>
+                        <span class="text-gray-900 font-medium">Ruches</span>
+                    </div>
                 </nav>
 
                 <!-- Titre avec actions -->
-                <div class="flex justify-between items-center">
-                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                <div class="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+                    <h2 class="text-lg sm:text-xl font-medium text-gray-900">
                         Ruches de {{ rucher.nom }}
                     </h2>
 
-                    <div class="space-x-2">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:gap-2">
                         <Link :href="route('ruchers.ruches.create', rucher.id)"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+                            class="bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm inline-flex items-center justify-center sm:py-2">
                         <Plus class="w-4 h-4 mr-2" />
                         Nouvelle Ruche
                         </Link>
 
                         <Link :href="route('ruchers.show', rucher.id)"
-                            class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                            class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-sm font-medium py-3 px-4 rounded-sm text-center sm:py-2">
                         Retour au rucher
                         </Link>
                     </div>
@@ -37,131 +39,129 @@
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="py-6 sm:py-8 lg:py-12">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
                 <!-- Message de succès -->
                 <div v-if="$page.props.flash?.message" class="mb-6">
-                    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                    <div class="bg-gray-100 border border-gray-300 text-gray-900 px-4 py-3 rounded-sm text-sm">
                         {{ $page.props.flash.message }}
                     </div>
                 </div>
 
                 <!-- Contenu principal -->
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+                <div class="bg-white border border-gray-200 rounded-sm">
 
                     <!-- État vide -->
-                    <div v-if="ruches.length === 0" class="text-center py-12">
-                        <Package class="mx-auto h-12 w-12 text-gray-400" />
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">Aucune ruche</h3>
-                        <p class="mt-1 text-sm text-gray-500">
+                    <div v-if="ruches.length === 0" class="text-center py-16 px-4">
+                        <Package class="mx-auto h-8 w-8 text-gray-400 mb-4" />
+                        <h3 class="text-base font-medium text-gray-900 mb-2">Aucune ruche</h3>
+                        <p class="text-sm text-gray-600 mb-8 max-w-sm mx-auto">
                             Commencez par ajouter votre première ruche à ce rucher.
                         </p>
-                        <div class="mt-6">
-                            <Link :href="route('ruchers.ruches.create', rucher.id)"
-                                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                            <Plus class="-ml-1 mr-2 h-5 w-5" />
-                            Ajouter une ruche
-                            </Link>
-                        </div>
+                        <Link :href="route('ruchers.ruches.create', rucher.id)"
+                            class="inline-flex items-center bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm">
+                        <Plus class="mr-2 h-4 w-4" />
+                        Ajouter une ruche
+                        </Link>
                     </div>
 
                     <!-- Liste des ruches -->
                     <div v-else>
                         <!-- En-tête -->
-                        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-medium text-gray-900">
+                        <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <h3 class="text-base font-medium text-gray-900">
                                     {{ ruches.length }} ruche{{ ruches.length > 1 ? 's' : '' }}
                                 </h3>
-                                <span class="text-sm text-gray-500">
+                                <span class="text-xs text-gray-600">
                                     Rucher : {{ rucher.nom }}
                                 </span>
                             </div>
                         </div>
 
                         <!-- Grille des ruches -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                            <div v-for="ruche in ruches" :key="ruche.id"
-                                class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-                                <!-- Contenu de la carte -->
-                                <div class="p-6">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <div class="flex items-center space-x-3">
-                                            <!-- Couleur de la ruche -->
-                                            <div v-if="ruche.couleur" :style="{ backgroundColor: ruche.couleur }"
-                                                class="w-4 h-4 rounded-full border border-gray-300"
-                                                :title="`Couleur: ${ruche.couleur}`"></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 p-4 sm:p-6">
+                            <Link v-for="ruche in ruches" :key="ruche.id"
+                                :href="route('ruchers.ruches.show', [rucher.id, ruche.id])"
+                                class="block border border-gray-200 rounded-sm hover:border-gray-900 transition-colors cursor-pointer">
 
-                                            <h3 class="text-lg font-semibold text-gray-900">
-                                                {{ ruche.nom }}
-                                            </h3>
+                            <!-- Contenu de la carte -->
+                            <div class="p-4">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                                        <!-- Couleur de la ruche -->
+                                        <div v-if="ruche.couleur" :style="{ backgroundColor: ruche.couleur }"
+                                            class="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0">
                                         </div>
 
-                                        <!-- Menu actions -->
-                                        <div class="flex space-x-2">
-                                            <Link :href="route('ruchers.ruches.show', [rucher.id, ruche.id])"
-                                                class="text-blue-600 hover:text-blue-800" title="Voir">
-                                            <Eye class="w-5 h-5" />
-                                            </Link>
-
-                                            <Link :href="route('ruchers.ruches.edit', [rucher.id, ruche.id])"
-                                                class="text-green-600 hover:text-green-800" title="Modifier">
-                                            <Edit class="w-5 h-5" />
-                                            </Link>
-                                        </div>
+                                        <h3 class="text-sm font-medium text-gray-900 truncate">
+                                            {{ ruche.nom }}
+                                        </h3>
                                     </div>
 
-                                    <!-- Informations de la ruche -->
-                                    <div class="space-y-2 text-sm text-gray-600">
-                                        <div class="flex items-center">
-                                            <Package class="w-4 h-4 mr-2 text-gray-400" />
-                                            Type : {{ ruche.type || 'Non spécifié' }}
-                                        </div>
-
-                                        <div class="flex items-center">
-                                            <Activity class="w-4 h-4 mr-2 text-gray-400" />
-                                            Statut :
-                                            <span :class="{
-                                                'text-green-600': ruche.statut === 'active',
-                                                'text-yellow-600': ruche.statut === 'inactive',
-                                                'text-red-600': ruche.statut === 'morte'
-                                            }" class="ml-1 font-medium">
-                                                {{ getStatutLabel(ruche.statut) }}
-                                            </span>
-                                        </div>
-
-                                        <div v-if="ruche.annee_reine" class="flex items-center">
-                                            <Crown class="w-4 h-4 mr-2 text-gray-400" />
-                                            Reine {{ ruche.annee_reine }}
-                                            <span v-if="ruche.couleur_marquage_reine"
-                                                :style="{ backgroundColor: getReineColor(ruche.couleur_marquage_reine) }"
-                                                class="ml-2 w-3 h-3 rounded-full border border-gray-300"
-                                                :title="`Marquage: ${ruche.couleur_marquage_reine}`"></span>
-                                        </div>
-
-                                        <div v-if="ruche.date_installation" class="flex items-center">
-                                            <Calendar class="w-4 h-4 mr-2 text-gray-400" />
-                                            Installée {{ formatDate(ruche.date_installation) }}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Footer de la carte -->
-                                <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-                                    <div class="flex items-center justify-between text-sm">
-                                        <span class="text-gray-500">
-                                            Ajoutée {{ formatDate(ruche.created_at) }}
-                                        </span>
-
+                                    <!-- Menu actions -->
+                                    <div class="flex gap-2 flex-shrink-0" @click.prevent.stop>
                                         <Link :href="route('ruchers.ruches.show', [rucher.id, ruche.id])"
-                                            class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center">
-                                        Voir détails
-                                        <ArrowRight class="w-4 h-4 ml-1" />
+                                            class="text-gray-600 hover:text-gray-900" title="Voir">
+                                        <Eye class="w-4 h-4" />
+                                        </Link>
+
+                                        <Link :href="route('ruchers.ruches.edit', [rucher.id, ruche.id])"
+                                            class="text-gray-600 hover:text-gray-900" title="Modifier">
+                                        <Edit class="w-4 h-4" />
                                         </Link>
                                     </div>
                                 </div>
+
+                                <!-- Informations de la ruche -->
+                                <div class="space-y-2 text-xs text-gray-600">
+                                    <div class="flex items-center gap-2">
+                                        <Package class="w-3 h-3 flex-shrink-0" />
+                                        <span>{{ ruche.type || 'Non spécifié' }}</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <Activity class="w-3 h-3 flex-shrink-0" />
+                                        <span :class="{
+                                            'text-gray-800': ruche.statut === 'active',
+                                            'text-gray-600': ruche.statut === 'inactive',
+                                            'text-gray-900': ruche.statut === 'morte'
+                                        }" class="font-medium">
+                                            {{ getStatutLabel(ruche.statut) }}
+                                        </span>
+                                    </div>
+
+                                    <div v-if="ruche.annee_reine" class="flex items-center gap-2">
+                                        <Crown class="w-3 h-3 flex-shrink-0" />
+                                        <span>Reine {{ ruche.annee_reine }}</span>
+                                        <div v-if="ruche.couleur_marquage_reine"
+                                            :style="{ backgroundColor: getReineColor(ruche.couleur_marquage_reine) }"
+                                            class="w-2 h-2 rounded-full border border-gray-300 flex-shrink-0">
+                                        </div>
+                                    </div>
+
+                                    <div v-if="ruche.date_installation" class="flex items-center gap-2">
+                                        <Calendar class="w-3 h-3 flex-shrink-0" />
+                                        <span class="truncate">{{ formatDate(ruche.date_installation) }}</span>
+                                    </div>
+                                </div>
                             </div>
+
+                            <!-- Footer de la carte -->
+                            <div class="px-4 py-3 border-t border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-gray-600">
+                                        {{ formatDate(ruche.created_at) }}
+                                    </span>
+
+                                    <span class="text-xs text-gray-900 font-medium inline-flex items-center gap-1">
+                                        Voir détails
+                                        <ArrowRight class="w-3 h-3" />
+                                    </span>
+                                </div>
+                            </div>
+                            </Link>
                         </div>
                     </div>
                 </div>

@@ -1,8 +1,11 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Application;
+use App\Http\Controllers\RucheController;
+use App\Http\Controllers\RucherController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -18,17 +21,15 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ✅ Ajouter cette ligne :
-    Route::resource('ruchers', \App\Http\Controllers\RucherController::class);
+    Route::resource('ruchers', RucherController::class);
 
     // ✅ Nouvelle ligne : routes imbriquées
-    Route::resource('ruchers.ruches', \App\Http\Controllers\RucheController::class)
+    Route::resource('ruchers.ruches', RucheController::class)
         ->parameters(['ruchers' => 'rucher', 'ruches' => 'ruche']);
     // ✅ Nouvelle route pour transhumance
-    Route::patch('ruchers/{rucher}/ruches/{ruche}/move', [\App\Http\Controllers\RucheController::class, 'move'])
+    Route::patch('ruchers/{rucher}/ruches/{ruche}/move', [RucheController::class, 'move'])
         ->name('ruchers.ruches.move');
 });

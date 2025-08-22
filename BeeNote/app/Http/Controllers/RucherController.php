@@ -59,9 +59,15 @@ class RucherController extends Controller
      */
     public function show(Rucher $rucher)
     {
-        $this->authorize('view', $rucher);  // ✅ Une ligne !
+        $this->authorize('view', $rucher);
 
-        return Inertia::render('Ruchers/Show', ['rucher' => $rucher]);
+        // Charger les ruches du rucher
+        $ruches = $rucher->ruches;
+
+        return Inertia::render('Ruchers/Show', [
+            'rucher' => $rucher,
+            'ruches' => $ruches  // ✅ Passer les ruches
+        ]);
     }
 
     /**

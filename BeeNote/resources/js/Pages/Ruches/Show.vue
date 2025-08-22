@@ -1,201 +1,210 @@
 <template>
     <AppLayout :title="`${ruche.nom} - ${rucher.nom}`">
         <template #header>
-            <div class="flex flex-col space-y-2">
+            <div class="space-y-3">
                 <!-- Breadcrumbs -->
-                <nav class="text-sm text-gray-500">
-                    <Link :href="route('ruchers.index')" class="hover:text-gray-700">
-                    Mes Ruchers
-                    </Link>
-                    <span class="mx-2">›</span>
-                    <Link :href="route('ruchers.show', rucher.id)" class="hover:text-gray-700">
-                    {{ rucher.nom }}
-                    </Link>
-                    <span class="mx-2">›</span>
-                    <Link :href="route('ruchers.ruches.index', rucher.id)" class="hover:text-gray-700">
-                    Ruches
-                    </Link>
-                    <span class="mx-2">›</span>
-                    <span class="text-gray-900">{{ ruche.nom }}</span>
+                <nav class="text-xs text-gray-600 overflow-x-auto">
+                    <div class="flex items-center gap-1 whitespace-nowrap">
+                        <Link :href="route('ruchers.index')" class="hover:text-gray-900">
+                            Ruchers
+                        </Link>
+                        <span>›</span>
+                        <Link :href="route('ruchers.show', rucher.id)" class="hover:text-gray-900">
+                            {{ rucher.nom }}
+                        </Link>
+                        <span>›</span>
+                        <Link :href="route('ruchers.ruches.index', rucher.id)" class="hover:text-gray-900">
+                            Ruches
+                        </Link>
+                        <span>›</span>
+                        <span class="text-gray-900 font-medium">{{ ruche.nom }}</span>
+                    </div>
                 </nav>
 
-                <!-- Titre avec actions -->
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center space-x-3">
+                <!-- Titre avec badge et actions -->
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-3">
                         <!-- Couleur de la ruche -->
-                        <div v-if="ruche.couleur" :style="{ backgroundColor: ruche.couleur }"
-                            class="w-6 h-6 rounded-full border-2 border-gray-300" :title="`Couleur: ${ruche.couleur}`">
+                        <div v-if="ruche.couleur" 
+                            :style="{ backgroundColor: ruche.couleur }"
+                            class="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0">
                         </div>
 
-                        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                            {{ ruche.nom }}
-                        </h2>
-
-                        <!-- Badge statut -->
-                        <span :class="{
-                            'bg-green-100 text-green-800': ruche.statut === 'active',
-                            'bg-yellow-100 text-yellow-800': ruche.statut === 'inactive',
-                            'bg-red-100 text-red-800': ruche.statut === 'morte'
-                        }" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
-                            <Activity class="w-3 h-3 mr-1" />
-                            {{ getStatutLabel(ruche.statut) }}
-                        </span>
+                        <div class="min-w-0 flex-1">
+                            <h2 class="text-lg sm:text-xl font-medium text-gray-900 truncate">
+                                {{ ruche.nom }}
+                            </h2>
+                            <span :class="{
+                                'bg-gray-100 text-gray-800': ruche.statut === 'active',
+                                'bg-gray-100 text-gray-600': ruche.statut === 'inactive',
+                                'bg-gray-100 text-gray-900': ruche.statut === 'morte'
+                            }" class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium mt-1">
+                                <Activity class="w-3 h-3 mr-1" />
+                                {{ getStatutLabel(ruche.statut) }}
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="space-x-2">
+                    <!-- Actions -->
+                    <div class="flex flex-col gap-2 sm:flex-row sm:gap-2">
                         <Link :href="route('ruchers.ruches.edit', [rucher.id, ruche.id])"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                        Modifier
+                            class="bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-2 px-3 rounded-sm text-center">
+                            Modifier
                         </Link>
 
-                        <button @click="confirmDelete"
-                            class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
-                            Supprimer
-                        </button>
+                        <div class="flex gap-2">
+                            <button @click="confirmDelete"
+                                class="flex-1 bg-white hover:bg-gray-50 text-red-600 border border-gray-300 text-sm font-medium py-2 px-3 rounded-sm sm:flex-none">
+                                Supprimer
+                            </button>
 
-                        <Link :href="route('ruchers.ruches.index', rucher.id)"
-                            class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                        Retour aux ruches
-                        </Link>
+                            <Link :href="route('ruchers.ruches.index', rucher.id)"
+                                class="flex-1 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-sm font-medium py-2 px-3 rounded-sm text-center sm:flex-none">
+                                Retour
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="py-6 sm:py-8 lg:py-12">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                     <!-- Informations principales -->
                     <div class="lg:col-span-2">
-                        <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                            <h3 class="text-lg font-semibold mb-6">Informations générales</h3>
+                        <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
+                            <h3 class="text-base font-medium text-gray-900 mb-6">Informations générales</h3>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                                 <!-- Colonne 1 -->
                                 <div class="space-y-4">
                                     <div>
-                                        <span class="font-medium text-gray-700">Nom :</span>
-                                        <span class="ml-2">{{ ruche.nom }}</span>
+                                        <dt class="text-sm font-medium text-gray-700">Nom</dt>
+                                        <dd class="mt-1 text-sm text-gray-900">{{ ruche.nom }}</dd>
                                     </div>
 
                                     <div>
-                                        <span class="font-medium text-gray-700">Type :</span>
-                                        <span class="ml-2 capitalize">{{ ruche.type || 'Non spécifié' }}</span>
+                                        <dt class="text-sm font-medium text-gray-700">Type</dt>
+                                        <dd class="mt-1 text-sm text-gray-900 capitalize">{{ ruche.type || 'Non spécifié' }}</dd>
                                     </div>
 
                                     <div>
-                                        <span class="font-medium text-gray-700">Statut :</span>
-                                        <span :class="{
-                                            'text-green-600': ruche.statut === 'active',
-                                            'text-yellow-600': ruche.statut === 'inactive',
-                                            'text-red-600': ruche.statut === 'morte'
-                                        }" class="ml-2 font-medium">
-                                            {{ getStatutLabel(ruche.statut) }}
-                                        </span>
+                                        <dt class="text-sm font-medium text-gray-700">Statut</dt>
+                                        <dd class="mt-1">
+                                            <span :class="{
+                                                'text-gray-800': ruche.statut === 'active',
+                                                'text-gray-600': ruche.statut === 'inactive',
+                                                'text-gray-900': ruche.statut === 'morte'
+                                            }" class="text-sm font-medium">
+                                                {{ getStatutLabel(ruche.statut) }}
+                                            </span>
+                                        </dd>
                                     </div>
 
                                     <div v-if="ruche.couleur">
-                                        <span class="font-medium text-gray-700">Couleur :</span>
-                                        <div class="ml-2 inline-flex items-center">
+                                        <dt class="text-sm font-medium text-gray-700">Couleur</dt>
+                                        <dd class="mt-1 flex items-center gap-2">
                                             <div :style="{ backgroundColor: ruche.couleur }"
-                                                class="w-4 h-4 rounded border border-gray-300 mr-2"></div>
-                                            {{ ruche.couleur }}
-                                        </div>
+                                                class="w-3 h-3 rounded border border-gray-300"></div>
+                                            <span class="text-sm text-gray-900">{{ ruche.couleur }}</span>
+                                        </dd>
                                     </div>
                                 </div>
 
                                 <!-- Colonne 2 -->
                                 <div class="space-y-4">
                                     <div v-if="ruche.date_installation">
-                                        <span class="font-medium text-gray-700">Date d'installation :</span>
-                                        <span class="ml-2">{{ formatDate(ruche.date_installation) }}</span>
+                                        <dt class="text-sm font-medium text-gray-700">Date d'installation</dt>
+                                        <dd class="mt-1 text-sm text-gray-900">{{ formatDate(ruche.date_installation) }}</dd>
                                     </div>
 
                                     <div>
-                                        <span class="font-medium text-gray-700">Rucher :</span>
-                                        <Link :href="route('ruchers.show', rucher.id)"
-                                            class="ml-2 text-blue-600 hover:text-blue-800">
-                                        {{ rucher.nom }}
-                                        </Link>
+                                        <dt class="text-sm font-medium text-gray-700">Rucher</dt>
+                                        <dd class="mt-1">
+                                            <Link :href="route('ruchers.show', rucher.id)"
+                                                class="text-sm text-blue-700 hover:text-blue-500 font-medium">
+                                                {{ rucher.nom }}
+                                            </Link>
+                                        </dd>
                                     </div>
 
                                     <div>
-                                        <span class="font-medium text-gray-700">Créée le :</span>
-                                        <span class="ml-2">{{ formatDate(ruche.created_at) }}</span>
+                                        <dt class="text-sm font-medium text-gray-700">Créée le</dt>
+                                        <dd class="mt-1 text-sm text-gray-900">{{ formatDate(ruche.created_at) }}</dd>
                                     </div>
                                 </div>
-                            </div>
+                            </dl>
 
                             <!-- Notes -->
-                            <div v-if="ruche.notes" class="mt-6 pt-6 border-t">
-                                <span class="font-medium text-gray-700">Notes :</span>
-                                <p class="mt-2 text-gray-600 whitespace-pre-line">{{ ruche.notes }}</p>
+                            <div v-if="ruche.notes" class="mt-6 pt-6 border-t border-gray-200">
+                                <dt class="text-sm font-medium text-gray-700 mb-2">Notes</dt>
+                                <dd class="text-sm text-gray-900 leading-relaxed whitespace-pre-line">{{ ruche.notes }}</dd>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Informations reine -->
-                    <div>
-                        <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                            <h3 class="text-lg font-semibold mb-6 flex items-center">
-                                <Crown class="w-5 h-5 mr-2 text-yellow-600" />
+                    <!-- Sidebar -->
+                    <div class="space-y-6">
+                        <!-- Informations reine -->
+                        <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
+                            <h3 class="text-base font-medium text-gray-900 mb-4 flex items-center">
+                                <Crown class="w-4 h-4 mr-2" />
                                 Informations reine
                             </h3>
 
                             <div class="space-y-4">
                                 <div v-if="ruche.annee_reine">
-                                    <span class="font-medium text-gray-700">Année de naissance :</span>
-                                    <div class="mt-1">
-                                        <span class="text-lg font-bold">{{ ruche.annee_reine }}</span>
-                                        <span class="ml-2 text-sm text-gray-500">
-                                            ({{ getAgeReine(ruche.annee_reine) }} an{{ getAgeReine(ruche.annee_reine) >
-                                                1 ? 's'
-                                                : '' }})
+                                    <dt class="text-sm font-medium text-gray-700">Année de naissance</dt>
+                                    <dd class="mt-1">
+                                        <span class="text-lg font-medium text-gray-900">{{ ruche.annee_reine }}</span>
+                                        <span class="ml-2 text-xs text-gray-600">
+                                            ({{ getAgeReine(ruche.annee_reine) }} an{{ getAgeReine(ruche.annee_reine) > 1 ? 's' : '' }})
                                         </span>
-                                    </div>
+                                    </dd>
                                 </div>
 
                                 <div v-if="ruche.couleur_marquage_reine">
-                                    <span class="font-medium text-gray-700">Marquage :</span>
-                                    <div class="mt-1 flex items-center">
+                                    <dt class="text-sm font-medium text-gray-700">Marquage</dt>
+                                    <dd class="mt-1 flex items-center gap-2">
                                         <div :style="{ backgroundColor: getReineColor(ruche.couleur_marquage_reine) }"
-                                            class="w-6 h-6 rounded-full border-2 border-gray-300 mr-2"></div>
-                                        <span class="capitalize">{{ ruche.couleur_marquage_reine }}</span>
-                                    </div>
+                                            class="w-4 h-4 rounded-full border border-gray-300"></div>
+                                        <span class="text-sm text-gray-900 capitalize">{{ ruche.couleur_marquage_reine }}</span>
+                                    </dd>
                                 </div>
 
                                 <div v-if="!ruche.annee_reine && !ruche.couleur_marquage_reine">
-                                    <p class="text-gray-500 italic">Aucune information sur la reine</p>
+                                    <p class="text-sm text-gray-600 italic">Aucune information sur la reine</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Actions rapides -->
-                        <div class="mt-6 bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                            <h3 class="text-lg font-semibold mb-4">Actions rapides</h3>
+                        <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
+                            <h3 class="text-base font-medium text-gray-900 mb-4">Actions rapides</h3>
 
-                            <div class="space-y-3">
+                            <div class="space-y-2">
                                 <button
-                                    class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center justify-center">
+                                    class="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
                                     <Plus class="w-4 h-4 mr-2" />
                                     Nouvelle visite
                                 </button>
 
                                 <button
-                                    class="w-full bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded flex items-center justify-center">
+                                    class="w-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
                                     <Plus class="w-4 h-4 mr-2" />
                                     Nouveau traitement
                                 </button>
 
                                 <button
-                                    class="w-full bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded flex items-center justify-center">
+                                    class="w-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
                                     <Plus class="w-4 h-4 mr-2" />
                                     Nouvelle récolte
                                 </button>
 
                                 <button @click="showMoveModal = true"
-                                    class="w-full bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex items-center justify-center">
+                                    class="w-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
                                     <Truck class="w-4 h-4 mr-2" />
                                     Déplacer la ruche
                                 </button>
@@ -206,58 +215,55 @@
 
                 <!-- Modal de déplacement -->
                 <div v-if="showMoveModal"
-                    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+                    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
                     @click="showMoveModal = false">
-                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" @click.stop>
-                        <div class="mt-3">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">
-                                Déplacer la ruche
-                            </h3>
+                    <div class="bg-white rounded-sm border border-gray-200 w-full max-w-md p-6" @click.stop>
+                        <h3 class="text-base font-medium text-gray-900 mb-4">
+                            Déplacer la ruche
+                        </h3>
 
-                            <form @submit.prevent="moveRuche">
-                                <div class="mb-4">
-                                    <label for="rucher_destination" class="block text-sm font-medium text-gray-700">
-                                        Rucher de destination
-                                    </label>
-                                    <select id="rucher_destination" v-model="moveForm.rucher_id"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        required>
-                                        <option value="">Sélectionner un rucher</option>
-                                        <option v-for="rucherOption in props.availableRuchers" :key="rucherOption.id"
-                                            :value="rucherOption.id">
-                                            {{ rucherOption.nom }}
-                                        </option>
-                                    </select>
-                                    <div v-if="moveForm.errors.rucher_id" class="text-red-600 text-sm mt-1">
-                                        {{ moveForm.errors.rucher_id }}
-                                    </div>
+                        <form @submit.prevent="moveRuche">
+                            <div class="mb-6">
+                                <label for="rucher_destination" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Rucher de destination
+                                </label>
+                                <select id="rucher_destination" v-model="moveForm.rucher_id"
+                                    class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                    required>
+                                    <option value="">Sélectionner un rucher</option>
+                                    <option v-for="rucherOption in props.availableRuchers" :key="rucherOption.id"
+                                        :value="rucherOption.id">
+                                        {{ rucherOption.nom }}
+                                    </option>
+                                </select>
+                                <div v-if="moveForm.errors.rucher_id" class="text-red-600 text-sm mt-1">
+                                    {{ moveForm.errors.rucher_id }}
                                 </div>
+                            </div>
 
-                                <div class="flex items-center justify-end space-x-4">
-                                    <button type="button" @click="showMoveModal = false"
-                                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                                        Annuler
-                                    </button>
-                                    <button type="submit" :disabled="moveForm.processing"
-                                        class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50">
-                                        <span v-if="moveForm.processing">Déplacement...</span>
-                                        <span v-else>Déplacer</span>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                            <div class="flex gap-3">
+                                <button type="button" @click="showMoveModal = false"
+                                    class="flex-1 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-sm font-medium py-2 px-4 rounded-sm">
+                                    Annuler
+                                </button>
+                                <button type="submit" :disabled="moveForm.processing"
+                                    class="flex-1 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-2 px-4 rounded-sm disabled:opacity-50">
+                                    <span v-if="moveForm.processing">Déplacement...</span>
+                                    <span v-else>Déplacer</span>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
 
-                <!-- Placeholder pour futures fonctionnalités -->
+                <!-- Historique -->
                 <div class="mt-8">
-                    <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                        <h3 class="text-lg font-semibold mb-4">Historique de la ruche</h3>
-                        <div class="text-center py-8">
-                            <Package class="mx-auto h-12 w-12 text-gray-400" />
-                            <p class="mt-2 text-gray-500">
-                                Visites, traitements et récoltes apparaîtront ici une fois ces fonctionnalités
-                                implémentées.
+                    <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
+                        <h3 class="text-base font-medium text-gray-900 mb-4">Historique de la ruche</h3>
+                        <div class="text-center py-12">
+                            <Package class="mx-auto h-8 w-8 text-gray-400 mb-4" />
+                            <p class="text-sm text-gray-600 max-w-sm mx-auto">
+                                Visites, traitements et récoltes apparaîtront ici une fois ces fonctionnalités implémentées.
                             </p>
                         </div>
                     </div>
@@ -269,20 +275,24 @@
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Link, router, useForm } from '@inertiajs/vue3';  // ✅ Ajouter useForm
-import { Activity, Crown, Plus, Package, Truck } from 'lucide-vue-next';  // ✅ Ajouter Truck
-import { ref, onMounted } from 'vue';
+import { Link, router, useForm } from '@inertiajs/vue3';
+import { Activity, Crown, Plus, Package, Truck } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 // État du modal
 const showMoveModal = ref(false);
-const availableRuchers = ref([]);
 
 // Formulaire de déplacement
 const moveForm = useForm({
     rucher_id: ''
 });
 
-
+// Props du contrôleur
+const props = defineProps({
+    rucher: Object,
+    ruche: Object,
+    availableRuchers: Array
+});
 
 // Déplacer la ruche
 function moveRuche() {
@@ -292,13 +302,6 @@ function moveRuche() {
         }
     });
 }
-
-// Props du contrôleur
-const props = defineProps({
-    rucher: Object,
-    ruche: Object,
-    availableRuchers: Array
-});
 
 // Helper pour formater les dates
 function formatDate(dateString) {
