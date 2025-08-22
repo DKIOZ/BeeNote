@@ -26,5 +26,9 @@ Route::middleware([
     Route::resource('ruchers', \App\Http\Controllers\RucherController::class);
 
     // ✅ Nouvelle ligne : routes imbriquées
-    Route::resource('ruchers.ruches', \App\Http\Controllers\RucheController::class);
+    Route::resource('ruchers.ruches', \App\Http\Controllers\RucheController::class)
+        ->parameters(['ruchers' => 'rucher', 'ruches' => 'ruche']);
+    // ✅ Nouvelle route pour transhumance
+    Route::patch('ruchers/{rucher}/ruches/{ruche}/move', [\App\Http\Controllers\RucheController::class, 'move'])
+        ->name('ruchers.ruches.move');
 });
