@@ -8,16 +8,20 @@ use App\Services\RucherService;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\StoreRucherRequest;
 use Inertia\Inertia;  // ✅ Import Inertia
+use App\Http\Requests\UpdateRucherRequest;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class RucherController extends Controller
 {
+    use AuthorizesRequests;
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
+        $this->authorize('viewAny', Rucher::class);
         // Récupère les ruchers de l'équipe active de l'utilisateur connecté, ou une collection vide si problème
-        $ruchers = request()->user()->currentTeam->ruchers ?? collect();
+        $ruchers = RucherService::getRuchersForTeam(request()->user());
 
         return Inertia::render('Ruchers/Index', [
             'ruchers' => $ruchers
@@ -29,6 +33,8 @@ class RucherController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Rucher::class);
+
         return Inertia::render('Ruchers/Create');
     }
 
@@ -37,7 +43,9 @@ class RucherController extends Controller
      */
     public function store(StoreRucherRequest  $request)
     {
-        $rucher = RucherService::createForTeam(
+        $this->authorize('create', Rucher::class);
+
+        RucherService::createForTeam(
             $request->validated(),
             $request->user()
         );
@@ -49,32 +57,48 @@ class RucherController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Rucher $rucher)
     {
-        //
+        $this->authorize('view', $rucher);  // ✅ Une ligne !
+
+        return Inertia::render('Ruchers/Show', ['rucher' => $rucher]);
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Rucher $rucher)
     {
-        //
+        $this->authorize('update', $rucher);
+
+        return Inertia::render('Ruchers/Edit', [
+            'rucher' => $rucher
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateRucherRequest $request, Rucher $rucher)
     {
-        //
+        $this->authorize('update', $rucher);
+
+        $rucher = RucherService::updateForTeam($rucher, $request->validated(), $request->user());
+
+        return redirect()->route('ruchers.show', $rucher)
+            ->with('message', 'Rucher modifié avec succès !');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Rucher $rucher)
     {
-        //
+        $this->authorize('delete', $rucher);
+
+        RucherService::deleteForTeam($rucher, request()->user());
+
+        return redirect()->route('ruchers.index')
+            ->with('message', 'Rucher supprimé avec succès !');
     }
 }

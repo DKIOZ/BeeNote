@@ -1,8 +1,8 @@
 <template>
-    <AppLayout title="Créer un Rucher">
+    <AppLayout title="Modifier le Rucher">
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Créer un nouveau rucher
+                Modifier le rucher : {{ rucher.nom }}
             </h2>
         </template>
 
@@ -106,14 +106,14 @@
 
                         <!-- Boutons -->
                         <div class="flex items-center justify-end space-x-4">
-                            <Link :href="route('ruchers.index')"
+                            <Link :href="route('ruchers.show', rucher.id)"
                                 class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
                             Annuler
                             </Link>
                             <button type="submit" :disabled="form.processing"
                                 class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50">
-                                <span v-if="form.processing">Création...</span>
-                                <span v-else>Créer le rucher</span>
+                                <span v-if="form.processing">Modification...</span>
+                                <span v-else>Modifier le rucher</span>
                             </button>
                         </div>
                     </form>
@@ -129,19 +129,24 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
+// Props du contrôleur
+const props = defineProps({
+    rucher: Object
+});
+
 // Variables pour l'autocomplete
 const suggestions = ref([]);
 const showSuggestions = ref(false);
 const searchLoading = ref(false);
 let searchTimeout = null;
 
-// Formulaire réactif
+// Formulaire pré-rempli avec les données existantes
 const form = useForm({
-    nom: '',
-    localisation: '',
-    latitude: null,
-    longitude: null,
-    description: '',
+    nom: props.rucher.nom,
+    localisation: props.rucher.localisation,
+    latitude: props.rucher.latitude,
+    longitude: props.rucher.longitude,
+    description: props.rucher.description,
 });
 
 // Recherche de lieux
@@ -190,8 +195,9 @@ function hideSuggestions() {
     }, 150);
 }
 
-// Soumission du formulaire
+
+// Soumission avec PUT
 function submit() {
-    form.post(route('ruchers.store'));
+    form.put(route('ruchers.update', props.rucher.id));
 }
 </script>

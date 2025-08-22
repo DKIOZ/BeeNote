@@ -24,4 +24,7 @@ Route::middleware([
 
     // ✅ Ajouter cette ligne :
     Route::resource('ruchers', \App\Http\Controllers\RucherController::class);
+
+    // ✅ Nouvelle ligne : routes imbriquées
+    Route::resource('ruchers.ruches', \App\Http\Controllers\RucheController::class);
 });
