@@ -75,15 +75,30 @@ class RucheController extends Controller
             abort(404, 'Ruche non trouvée dans ce rucher');
         }
 
-        // ✅ Récupérer tous les ruchers de la team pour le déplacement
+        // Charger toutes les relations de l'historique
+        $ruche->load([
+            'traitements' => function ($query) {
+                $query->where('team_id', request()->user()->current_team_id)
+                    ->orderBy('date_traitement', 'desc');
+            },
+            'visites' => function ($query) {
+                $query->where('team_id', request()->user()->current_team_id)
+                    ->orderBy('date_visite', 'desc');
+            },
+            'recoltes' => function ($query) {
+                $query->where('team_id', request()->user()->current_team_id)
+                    ->orderBy('date_recolte', 'desc');
+            }
+        ]);
+
         $availableRuchers = RucherService::getRuchersForTeam(request()->user())
-            ->where('id', '!=', $rucher->id)  // Exclure le rucher actuel
-            ->values();  // Réindexer le tableau
+            ->where('id', '!=', $rucher->id)
+            ->values();
 
         return Inertia::render('Ruches/Show', [
             'rucher' => $rucher,
             'ruche' => $ruche,
-            'availableRuchers' => $availableRuchers  // ✅ Passer les ruchers
+            'availableRuchers' => $availableRuchers
         ]);
     }
 

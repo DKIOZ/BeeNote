@@ -6,15 +6,15 @@
                 <nav class="text-xs text-gray-600 overflow-x-auto">
                     <div class="flex items-center gap-1 whitespace-nowrap">
                         <Link :href="route('ruchers.index')" class="hover:text-gray-900">
-                            Ruchers
+                        Ruchers
                         </Link>
                         <span>›</span>
                         <Link :href="route('ruchers.show', rucher.id)" class="hover:text-gray-900">
-                            {{ rucher.nom }}
+                        {{ rucher.nom }}
                         </Link>
                         <span>›</span>
                         <Link :href="route('ruchers.ruches.index', rucher.id)" class="hover:text-gray-900">
-                            Ruches
+                        Ruches
                         </Link>
                         <span>›</span>
                         <span class="text-gray-900 font-medium">{{ ruche.nom }}</span>
@@ -25,8 +25,7 @@
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-3">
                         <!-- Couleur de la ruche -->
-                        <div v-if="ruche.couleur" 
-                            :style="{ backgroundColor: ruche.couleur }"
+                        <div v-if="ruche.couleur" :style="{ backgroundColor: ruche.couleur }"
                             class="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0">
                         </div>
 
@@ -49,7 +48,7 @@
                     <div class="flex flex-col gap-2 sm:flex-row sm:gap-2">
                         <Link :href="route('ruchers.ruches.edit', [rucher.id, ruche.id])"
                             class="bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-2 px-3 rounded-sm text-center">
-                            Modifier
+                        Modifier
                         </Link>
 
                         <div class="flex gap-2">
@@ -60,7 +59,7 @@
 
                             <Link :href="route('ruchers.ruches.index', rucher.id)"
                                 class="flex-1 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-sm font-medium py-2 px-3 rounded-sm text-center sm:flex-none">
-                                Retour
+                            Retour
                             </Link>
                         </div>
                     </div>
@@ -87,7 +86,8 @@
 
                                     <div>
                                         <dt class="text-sm font-medium text-gray-700">Type</dt>
-                                        <dd class="mt-1 text-sm text-gray-900 capitalize">{{ ruche.type || 'Non spécifié' }}</dd>
+                                        <dd class="mt-1 text-sm text-gray-900 capitalize">{{ ruche.type || 'Non spécifié' }}
+                                        </dd>
                                     </div>
 
                                     <div>
@@ -117,7 +117,8 @@
                                 <div class="space-y-4">
                                     <div v-if="ruche.date_installation">
                                         <dt class="text-sm font-medium text-gray-700">Date d'installation</dt>
-                                        <dd class="mt-1 text-sm text-gray-900">{{ formatDate(ruche.date_installation) }}</dd>
+                                        <dd class="mt-1 text-sm text-gray-900">{{ formatDate(ruche.date_installation) }}
+                                        </dd>
                                     </div>
 
                                     <div>
@@ -125,7 +126,7 @@
                                         <dd class="mt-1">
                                             <Link :href="route('ruchers.show', rucher.id)"
                                                 class="text-sm text-blue-700 hover:text-blue-500 font-medium">
-                                                {{ rucher.nom }}
+                                            {{ rucher.nom }}
                                             </Link>
                                         </dd>
                                     </div>
@@ -140,7 +141,8 @@
                             <!-- Notes -->
                             <div v-if="ruche.notes" class="mt-6 pt-6 border-t border-gray-200">
                                 <dt class="text-sm font-medium text-gray-700 mb-2">Notes</dt>
-                                <dd class="text-sm text-gray-900 leading-relaxed whitespace-pre-line">{{ ruche.notes }}</dd>
+                                <dd class="text-sm text-gray-900 leading-relaxed whitespace-pre-line">{{ ruche.notes }}
+                                </dd>
                             </div>
                         </div>
                     </div>
@@ -160,7 +162,9 @@
                                     <dd class="mt-1">
                                         <span class="text-lg font-medium text-gray-900">{{ ruche.annee_reine }}</span>
                                         <span class="ml-2 text-xs text-gray-600">
-                                            ({{ getAgeReine(ruche.annee_reine) }} an{{ getAgeReine(ruche.annee_reine) > 1 ? 's' : '' }})
+                                            ({{ getAgeReine(ruche.annee_reine) }} an{{ getAgeReine(ruche.annee_reine) >
+                                            1 ? 's'
+                                            : '' }})
                                         </span>
                                     </dd>
                                 </div>
@@ -170,7 +174,8 @@
                                     <dd class="mt-1 flex items-center gap-2">
                                         <div :style="{ backgroundColor: getReineColor(ruche.couleur_marquage_reine) }"
                                             class="w-4 h-4 rounded-full border border-gray-300"></div>
-                                        <span class="text-sm text-gray-900 capitalize">{{ ruche.couleur_marquage_reine }}</span>
+                                        <span class="text-sm text-gray-900 capitalize">{{ ruche.couleur_marquage_reine
+                                            }}</span>
                                     </dd>
                                 </div>
 
@@ -185,20 +190,21 @@
                             <h3 class="text-base font-medium text-gray-900 mb-4">Actions rapides</h3>
 
                             <div class="space-y-2">
-                                <button
+                                <!-- Par ce Link fonctionnel : -->
+                                <!-- Tous les boutons avec le même style -->
+                                <Link :href="route('ruchers.ruches.visites.create', [rucher.id, ruche.id])"
                                     class="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
                                     <Plus class="w-4 h-4 mr-2" />
                                     Nouvelle visite
-                                </button>
+                                </Link>
 
-                                <button
-                                    class="w-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
-                                    <Plus class="w-4 h-4 mr-2" />
+                                <Link :href="route('ruchers.ruches.traitements.create', [rucher.id, ruche.id])"
+                                    class="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
+                                    <Beaker class="w-4 h-4 mr-2" />
                                     Nouveau traitement
-                                </button>
+                                </Link>
 
-                                <button
-                                    class="w-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
+                                <button class="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
                                     <Plus class="w-4 h-4 mr-2" />
                                     Nouvelle récolte
                                 </button>
@@ -257,17 +263,56 @@
                 </div>
 
                 <!-- Historique -->
-                <div class="mt-8">
-                    <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
-                        <h3 class="text-base font-medium text-gray-900 mb-4">Historique de la ruche</h3>
-                        <div class="text-center py-12">
-                            <Package class="mx-auto h-8 w-8 text-gray-400 mb-4" />
-                            <p class="text-sm text-gray-600 max-w-sm mx-auto">
-                                Visites, traitements et récoltes apparaîtront ici une fois ces fonctionnalités implémentées.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+<div class="mt-8">
+    <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-base font-medium text-gray-900">Historique de la ruche</h3>
+            <div class="text-xs text-gray-600">
+                {{ getTotalHistorique() }} entrée{{ getTotalHistorique() > 1 ? 's' : '' }}
+            </div>
+        </div>
+
+        <!-- État vide -->
+        <div v-if="getTotalHistorique() === 0" class="text-center py-12">
+            <Package class="mx-auto h-8 w-8 text-gray-400 mb-4" />
+            <p class="text-sm text-gray-600 max-w-sm mx-auto">
+                Aucune activité enregistrée pour cette ruche.
+            </p>
+        </div>
+
+        <!-- Timeline unifiée -->
+<div v-else class="space-y-3">
+    <Link v-for="item in getHistoriqueUnifie()" :key="`${item.type}-${item.id}`" 
+        :href="getItemDetailUrl(item)"
+        class="flex items-start gap-3 p-3 border border-gray-200 rounded-sm hover:bg-gray-50 cursor-pointer">
+        
+        <!-- Icône selon le type -->
+        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+            :class="getTypeClass(item.type)">
+            <Beaker v-if="item.type === 'traitement'" class="w-4 h-4" />
+            <Eye v-else-if="item.type === 'visite'" class="w-4 h-4" />
+            <Package v-else-if="item.type === 'recolte'" class="w-4 h-4" />
+        </div>
+
+        <!-- Contenu -->
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-medium text-gray-900">
+                    {{ getItemTitle(item) }}
+                </h4>
+                <time class="text-xs text-gray-600">
+                    {{ formatDate(getItemDate(item)) }}
+                </time>
+            </div>
+            
+            <p class="text-sm text-gray-600 mt-1">
+                {{ getItemDescription(item) }}
+            </p>
+        </div>
+    </Link>
+</div>
+    </div>
+</div>
             </div>
         </div>
     </AppLayout>
@@ -276,7 +321,7 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import { Activity, Crown, Plus, Package, Truck } from 'lucide-vue-next';
+import { Activity, Crown, Plus, Package, Truck, Beaker, Eye } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 // État du modal
@@ -344,6 +389,130 @@ function getAgeReine(anneeReine) {
 function confirmDelete() {
     if (confirm('Êtes-vous sûr de vouloir supprimer cette ruche ? Cette action est irréversible.')) {
         router.delete(route('ruchers.ruches.destroy', [props.rucher.id, props.ruche.id]));
+    }
+}
+
+// Helper pour trier les traitements par date
+function getSortedTraitements() {
+    if (!props.ruche.traitements) return [];
+    
+    return [...props.ruche.traitements].sort((a, b) => {
+        return new Date(b.date_traitement) - new Date(a.date_traitement);
+    });
+}
+
+// Helper pour les types de traitement (réutilise celui existant)
+function getTypeTraitementLabel(type) {
+    const labels = {
+        'varroa': 'Varroa',
+        'nosema': 'Nosémose', 
+        'loque': 'Loque',
+        'preventif': 'Préventif',
+        'frelon_asiatique': 'Frelon asiatique',
+        'autre': 'Autre'
+    };
+    return labels[type] || type;
+}
+
+// Calculer le total d'entrées
+function getTotalHistorique() {
+    return (props.ruche.traitements?.length || 0) +
+           (props.ruche.visites?.length || 0) +
+           (props.ruche.recoltes?.length || 0);
+}
+
+// Créer un historique unifié et trié
+function getHistoriqueUnifie() {
+    const items = [];
+    
+    // Ajouter les traitements
+    if (props.ruche.traitements) {
+        props.ruche.traitements.forEach(traitement => {
+            items.push({ ...traitement, type: 'traitement' });
+        });
+    }
+    
+    // Ajouter les visites
+    if (props.ruche.visites) {
+        props.ruche.visites.forEach(visite => {
+            items.push({ ...visite, type: 'visite' });
+        });
+    }
+    
+    // Ajouter les récoltes
+    if (props.ruche.recoltes) {
+        props.ruche.recoltes.forEach(recolte => {
+            items.push({ ...recolte, type: 'recolte' });
+        });
+    }
+    
+    // Trier par date décroissante
+    return items.sort((a, b) => {
+        const dateA = new Date(getItemDate(a));
+        const dateB = new Date(getItemDate(b));
+        return dateB - dateA;
+    });
+}
+
+// Obtenir la date selon le type
+function getItemDate(item) {
+    switch(item.type) {
+        case 'traitement': return item.date_traitement;
+        case 'visite': return item.date_visite;
+        case 'recolte': return item.date_recolte;
+        default: return item.created_at;
+    }
+}
+
+// Titre selon le type
+function getItemTitle(item) {
+    switch(item.type) {
+        case 'traitement': 
+            return `Traitement ${getTypeTraitementLabel(item.type_traitement)}`;
+        case 'visite': 
+            return 'Visite de contrôle';
+        case 'recolte': 
+            return `Récolte ${item.type_miel || ''}`;
+        default: 
+            return 'Activité';
+    }
+}
+
+// Description selon le type
+function getItemDescription(item) {
+    switch(item.type) {
+        case 'traitement': 
+            return `${item.produit_utilise} - ${item.dosage}`;
+        case 'visite': 
+            return item.notes_generales || 'Visite d\'inspection';
+        case 'recolte': 
+            return `${item.quantite_kg}kg - ${item.nombre_cadres} cadres`;
+        default: 
+            return '';
+    }
+}
+
+// Classes CSS selon le type
+function getTypeClass(type) {
+    const classes = {
+        'traitement': 'bg-blue-100 text-blue-600',
+        'visite': 'bg-green-100 text-green-600',
+        'recolte': 'bg-yellow-100 text-yellow-600'
+    };
+    return classes[type] || 'bg-gray-100 text-gray-600';
+}
+
+// URL de détail selon le type
+function getItemDetailUrl(item) {
+    switch(item.type) {
+        case 'traitement': 
+            return route('ruchers.ruches.traitements.show', [props.rucher.id, props.ruche.id, item.id]);
+        case 'visite': 
+            return route('ruchers.ruches.visites.show', [props.rucher.id, props.ruche.id, item.id]);
+        case 'recolte': 
+            return route('ruchers.ruches.recoltes.show', [props.rucher.id, props.ruche.id, item.id]);
+        default: 
+            return '#';
     }
 }
 </script>

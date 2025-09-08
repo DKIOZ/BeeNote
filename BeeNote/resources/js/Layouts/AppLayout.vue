@@ -49,7 +49,7 @@ const logout = () => {
                             <div class="hidden sm:flex sm:items-center sm:ml-8 sm:space-x-6">
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')"
                                     class="text-sm font-medium text-gray-700 hover:text-gray-900 px-3 py-2 rounded-sm transition-colors">
-                                    Dashboard
+                                    Accueil
                                 </NavLink>
                                 <NavLink :href="route('ruchers.index')" :active="route().current('ruchers.*')"
                                     class="text-sm font-medium text-gray-700 hover:text-gray-900 px-3 py-2 rounded-sm transition-colors">
@@ -76,15 +76,15 @@ const logout = () => {
                                     <div class="w-60">
                                         <!-- Team Management -->
                                         <div class="px-4 py-2 text-xs font-medium text-gray-600 uppercase tracking-wide">
-                                            Manage Team
+                                            Gestion d'équipe
                                         </div>
 
                                         <DropdownLink :href="route('teams.show', $page.props.auth.user.current_team)">
-                                            Team Settings
+                                            Paramètres de l'équipe
                                         </DropdownLink>
 
                                         <DropdownLink v-if="$page.props.jetstream.canCreateTeams" :href="route('teams.create')">
-                                            Create New Team
+                                            Créer une équipe
                                         </DropdownLink>
 
                                         <!-- Team Switcher -->
@@ -92,7 +92,7 @@ const logout = () => {
                                             <div class="border-t border-gray-200 my-1" />
 
                                             <div class="px-4 py-2 text-xs font-medium text-gray-600 uppercase tracking-wide">
-                                                Switch Teams
+                                                Changement d'équipe
                                             </div>
 
                                             <template v-for="team in $page.props.auth.user.all_teams" :key="team.id">
@@ -135,7 +135,7 @@ const logout = () => {
                                 <template #content>
                                     <!-- Account Management -->
                                     <div class="px-4 py-2 text-xs font-medium text-gray-600 uppercase tracking-wide">
-                                        Manage Account
+                                        Gestion du compte
                                     </div>
 
                                     <DropdownLink :href="route('profile.show')">
@@ -151,7 +151,7 @@ const logout = () => {
                                     <!-- Authentication -->
                                     <form @submit.prevent="logout">
                                         <DropdownLink as="button">
-                                            Log Out
+                                            Déconnexion
                                         </DropdownLink>
                                     </form>
                                 </template>
@@ -179,7 +179,7 @@ const logout = () => {
                     <div class="px-4 pt-2 pb-3 space-y-1 border-t border-gray-200">
                         <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')"
                             class="block text-sm font-medium text-gray-700 hover:text-gray-900 px-3 py-2 rounded-sm">
-                            Dashboard
+                            Accueil
                         </ResponsiveNavLink>
 
                         <ResponsiveNavLink :href="route('ruchers.index')" :active="route().current('ruchers.*')"
@@ -222,7 +222,7 @@ const logout = () => {
                             <form @submit.prevent="logout">
                                 <ResponsiveNavLink as="button"
                                     class="w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900 px-3 py-2 rounded-sm">
-                                    Log Out
+                                    Déconnexion
                                 </ResponsiveNavLink>
                             </form>
 
@@ -231,19 +231,19 @@ const logout = () => {
                                 <div class="border-t border-gray-200 my-2" />
 
                                 <div class="px-3 py-2 text-xs font-medium text-gray-600 uppercase tracking-wide">
-                                    Manage Team
+                                    Gestion de l'équipe
                                 </div>
 
                                 <ResponsiveNavLink :href="route('teams.show', $page.props.auth.user.current_team)"
                                     :active="route().current('teams.show')"
                                     class="block text-sm font-medium text-gray-700 hover:text-gray-900 px-3 py-2 rounded-sm">
-                                    Team Settings
+                                    Paramètres de l'équipe
                                 </ResponsiveNavLink>
 
                                 <ResponsiveNavLink v-if="$page.props.jetstream.canCreateTeams" :href="route('teams.create')"
                                     :active="route().current('teams.create')"
                                     class="block text-sm font-medium text-gray-700 hover:text-gray-900 px-3 py-2 rounded-sm">
-                                    Create New Team
+                                    Créer une équipe
                                 </ResponsiveNavLink>
 
                                 <!-- Team Switcher -->
@@ -251,7 +251,7 @@ const logout = () => {
                                     <div class="border-t border-gray-200 my-2" />
 
                                     <div class="px-3 py-2 text-xs font-medium text-gray-600 uppercase tracking-wide">
-                                        Switch Teams
+                                        Changement d'équipe
                                     </div>
 
                                     <template v-for="team in $page.props.auth.user.all_teams" :key="team.id">

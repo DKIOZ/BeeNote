@@ -55,14 +55,7 @@ return new class extends Migration
             
             $table->decimal('temperature_application', 4, 1)->nullable(); // Température lors application
             
-            // Suivi efficacité
-            $table->enum('efficacite', [
-                'non_evaluee',
-                'excellente',
-                'bonne', 
-                'moyenne',
-                'faible'
-            ])->default('non_evaluee');
+            c
             
             $table->text('effets_secondaires')->nullable();
             $table->text('notes')->nullable();

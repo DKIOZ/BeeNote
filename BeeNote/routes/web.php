@@ -5,7 +5,9 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Application;
 use App\Http\Controllers\RucheController;
 use App\Http\Controllers\RucherController;
+use App\Http\Controllers\VisiteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TraitementController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -23,13 +25,21 @@ Route::middleware([
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // ✅ Ajouter cette ligne :
+    // Routes pour les ruchers
     Route::resource('ruchers', RucherController::class);
 
-    // ✅ Nouvelle ligne : routes imbriquées
+    // routes imbriquées pour les ruches
     Route::resource('ruchers.ruches', RucheController::class)
         ->parameters(['ruchers' => 'rucher', 'ruches' => 'ruche']);
-    // ✅ Nouvelle route pour transhumance
+    // route pour transhumance
     Route::patch('ruchers/{rucher}/ruches/{ruche}/move', [RucheController::class, 'move'])
         ->name('ruchers.ruches.move');
+
+    // routes visites
+    Route::resource('ruchers.ruches.visites', VisiteController::class)
+        ->parameters(['ruchers' => 'rucher', 'ruches' => 'ruche', 'visites' => 'visite']);
+    
+    // routes traitement
+    Route::resource('ruchers.ruches.traitements', TraitementController::class)
+        ->parameters(['ruchers' => 'rucher', 'ruches' => 'ruche', 'traitements' => 'traitement']);
 });
