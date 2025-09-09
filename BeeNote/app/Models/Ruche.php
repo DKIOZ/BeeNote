@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -32,6 +33,20 @@ class Ruche extends Model
         //     'user_id'     // 6. Foreign key dans le modèle intermédiaire (ruchers.user_id)
         // );
         return $this->hasOneThrough(Team::class, Rucher::class);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($ruche) {
+            $ruche->qr_token = Str::random(32);
+        });
+    }
+
+    public function getQrUrlAttribute()
+    {
+        return route('qr.scan', $this->qr_token);
     }
 
     public function rucher()

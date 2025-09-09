@@ -6,8 +6,10 @@ use Inertia\Inertia;
 use App\Models\Ruche;
 use App\Models\Rucher;
 use Illuminate\Http\Request;
+use chillerlan\QRCode\QRCode;
 use App\Services\RucheService;
 use App\Services\RucherService;
+use chillerlan\QRCode\QROptions;
 use App\Http\Requests\MoveRucheRequest;
 use App\Http\Requests\StoreRucheRequest;
 use App\Http\Requests\UpdateRucheRequest;
@@ -183,5 +185,36 @@ class RucheController extends Controller
 
         return redirect()->route('ruchers.ruches.show', [$newRucher->id, $ruche->id])
             ->with('message', "Ruche {$ruche->nom} déplacée vers {$newRucher->nom} avec succès !");
+    }
+
+    public function scanQr($token)
+    {
+        $ruche = Ruche::where('qr_token', $token)->firstOrFail();
+
+        return redirect()->route('ruchers.ruches.show', [
+            'rucher' => $ruche->rucher_id,
+            'ruche' => $ruche->id
+        ])->with('qr_scanned', true);
+    }
+
+    public function generateQr(Rucher $rucher, Ruche $ruche)
+    {
+        $this->authorize('view', $rucher);
+
+        if ($ruche->rucher_id !== $rucher->id) {
+            abort(404);
+        }
+
+        $options = new QROptions([
+            'outputType' => QRCode::OUTPUT_IMAGE_PNG,
+            'eccLevel' => QRCode::ECC_L,
+            'scale' => 5,
+            'imageBase64' => false,
+        ]);
+
+        $qrcode = new QRCode($options);
+        $png = $qrcode->render(route('qr.scan', $ruche->qr_token));
+
+        return response($png, 200)->header('Content-Type', 'image/png');
     }
 }

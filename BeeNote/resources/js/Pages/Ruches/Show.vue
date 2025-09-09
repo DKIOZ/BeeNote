@@ -190,8 +190,6 @@
                             <h3 class="text-base font-medium text-gray-900 mb-4">Actions rapides</h3>
 
                             <div class="space-y-2">
-                                <!-- Par ce Link fonctionnel : -->
-                                <!-- Tous les boutons avec le même style -->
                                 <Link :href="route('ruchers.ruches.visites.create', [rucher.id, ruche.id])"
                                     class="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
                                     <Plus class="w-4 h-4 mr-2" />
@@ -215,6 +213,50 @@
                                     <Truck class="w-4 h-4 mr-2" />
                                     Déplacer la ruche
                                 </button>
+                            </div>
+                        </div>
+
+                        <!-- Section QR Code -->
+                        <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-base font-medium text-gray-900">
+                                    QR Code terrain
+                                </h3>
+                                <button @click="showQrModal = true"
+                                    class="text-xs text-gray-600 hover:text-gray-900 font-medium">
+                                    Agrandir
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <!-- QR Code -->
+                                <div class="flex justify-center">
+                                    <div class="w-32 h-32 border border-gray-200 rounded-sm p-2 bg-white">
+                                        <img :src="`/ruchers/${rucher.id}/ruches/${ruche.id}/qr`" 
+                                             alt="QR Code" 
+                                             class="w-full h-full" />
+                                    </div>
+                                </div>
+                                
+                                <!-- Description -->
+                                <div class="text-center">
+                                    <p class="text-xs text-gray-600 mb-3">
+                                        Scannez pour accès rapide sur le terrain
+                                    </p>
+                                    
+                                    <!-- Badges actions -->
+                                    <div class="flex flex-wrap justify-center gap-1">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-gray-100 text-gray-800">
+                                            Visite
+                                        </span>
+                                        <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-gray-100 text-gray-800">
+                                            Traitement
+                                        </span>
+                                        <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-gray-100 text-gray-800">
+                                            Récolte
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -263,57 +305,82 @@
                     </div>
                 </div>
 
+                <!-- Modal QR Code -->
+                <div v-if="showQrModal" 
+                     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                     @click="showQrModal = false">
+                    <div class="bg-white rounded-sm p-6 max-w-sm w-full" @click.stop>
+                        <div class="text-center">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">
+                                QR Code - {{ ruche.nom }}
+                            </h3>
+                            <div class="w-64 h-64 mx-auto border border-gray-200 rounded-sm p-4 bg-white">
+                                <img :src="`/ruchers/${rucher.id}/ruches/${ruche.id}/qr`" 
+                                     alt="QR Code" 
+                                     class="w-full h-full" />
+                            </div>
+                            <p class="text-sm text-gray-600 mt-4">
+                                Placez sur la ruche pour un accès terrain rapide
+                            </p>
+                            <button @click="showQrModal = false"
+                                class="mt-4 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-2 px-4 rounded-sm">
+                                Fermer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Historique -->
-<div class="mt-8">
-    <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-base font-medium text-gray-900">Historique de la ruche</h3>
-            <div class="text-xs text-gray-600">
-                {{ getTotalHistorique() }} entrée{{ getTotalHistorique() > 1 ? 's' : '' }}
-            </div>
-        </div>
+                <div class="mt-8">
+                    <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-base font-medium text-gray-900">Historique de la ruche</h3>
+                            <div class="text-xs text-gray-600">
+                                {{ getTotalHistorique() }} entrée{{ getTotalHistorique() > 1 ? 's' : '' }}
+                            </div>
+                        </div>
 
-        <!-- État vide -->
-        <div v-if="getTotalHistorique() === 0" class="text-center py-12">
-            <Package class="mx-auto h-8 w-8 text-gray-400 mb-4" />
-            <p class="text-sm text-gray-600 max-w-sm mx-auto">
-                Aucune activité enregistrée pour cette ruche.
-            </p>
-        </div>
+                        <!-- État vide -->
+                        <div v-if="getTotalHistorique() === 0" class="text-center py-12">
+                            <Package class="mx-auto h-8 w-8 text-gray-400 mb-4" />
+                            <p class="text-sm text-gray-600 max-w-sm mx-auto">
+                                Aucune activité enregistrée pour cette ruche.
+                            </p>
+                        </div>
 
-        <!-- Timeline unifiée -->
-<div v-else class="space-y-3">
-    <Link v-for="item in getHistoriqueUnifie()" :key="`${item.type}-${item.id}`" 
-        :href="getItemDetailUrl(item)"
-        class="flex items-start gap-3 p-3 border border-gray-200 rounded-sm hover:bg-gray-50 cursor-pointer">
-        
-        <!-- Icône selon le type -->
-        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
-            :class="getTypeClass(item.type)">
-            <Beaker v-if="item.type === 'traitement'" class="w-4 h-4" />
-            <Eye v-else-if="item.type === 'visite'" class="w-4 h-4" />
-            <Package v-else-if="item.type === 'recolte'" class="w-4 h-4" />
-        </div>
+                        <!-- Timeline unifiée -->
+                        <div v-else class="space-y-3">
+                            <Link v-for="item in getHistoriqueUnifie()" :key="`${item.type}-${item.id}`" 
+                                :href="getItemDetailUrl(item)"
+                                class="flex items-start gap-3 p-3 border border-gray-200 rounded-sm hover:bg-gray-50 cursor-pointer">
+                                
+                                <!-- Icône selon le type -->
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                                    :class="getTypeClass(item.type)">
+                                    <Beaker v-if="item.type === 'traitement'" class="w-4 h-4" />
+                                    <Eye v-else-if="item.type === 'visite'" class="w-4 h-4" />
+                                    <Package v-else-if="item.type === 'recolte'" class="w-4 h-4" />
+                                </div>
 
-        <!-- Contenu -->
-        <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-                <h4 class="text-sm font-medium text-gray-900">
-                    {{ getItemTitle(item) }}
-                </h4>
-                <time class="text-xs text-gray-600">
-                    {{ formatDate(getItemDate(item)) }}
-                </time>
-            </div>
-            
-            <p class="text-sm text-gray-600 mt-1">
-                {{ getItemDescription(item) }}
-            </p>
-        </div>
-    </Link>
-</div>
-    </div>
-</div>
+                                <!-- Contenu -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between">
+                                        <h4 class="text-sm font-medium text-gray-900">
+                                            {{ getItemTitle(item) }}
+                                        </h4>
+                                        <time class="text-xs text-gray-600">
+                                            {{ formatDate(getItemDate(item)) }}
+                                        </time>
+                                    </div>
+                                    
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        {{ getItemDescription(item) }}
+                                    </p>
+                                </div>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </AppLayout>
@@ -325,8 +392,9 @@ import { Link, router, useForm } from '@inertiajs/vue3';
 import { Activity, Crown, Plus, Package, Truck, Beaker, Eye } from 'lucide-vue-next';
 import { ref } from 'vue';
 
-// État du modal
+// État des modals
 const showMoveModal = ref(false);
+const showQrModal = ref(false);
 
 // Formulaire de déplacement
 const moveForm = useForm({
@@ -393,16 +461,7 @@ function confirmDelete() {
     }
 }
 
-// Helper pour trier les traitements par date
-function getSortedTraitements() {
-    if (!props.ruche.traitements) return [];
-    
-    return [...props.ruche.traitements].sort((a, b) => {
-        return new Date(b.date_traitement) - new Date(a.date_traitement);
-    });
-}
-
-// Helper pour les types de traitement (réutilise celui existant)
+// Helper pour les types de traitement
 function getTypeTraitementLabel(type) {
     const labels = {
         'varroa': 'Varroa',

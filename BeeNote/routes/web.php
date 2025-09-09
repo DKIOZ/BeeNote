@@ -35,7 +35,10 @@ Route::middleware([
     // route pour transhumance
     Route::patch('ruchers/{rucher}/ruches/{ruche}/move', [RucheController::class, 'move'])
         ->name('ruchers.ruches.move');
-
+    // Route pour scan QR
+    Route::get('/scan/{token}', [RucheController::class, 'scanQr'])->name('qr.scan');
+    Route::get('/ruchers/{rucher}/ruches/{ruche}/qr', [RucheController::class, 'generateQr'])
+        ->name('ruchers.ruches.qr');
     // routes visites
     Route::resource('ruchers.ruches.visites', VisiteController::class)
         ->parameters(['ruchers' => 'rucher', 'ruches' => 'ruche', 'visites' => 'visite']);
