@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use App\Http\Controllers\RucheController;
 use App\Http\Controllers\RucherController;
 use App\Http\Controllers\VisiteController;
+use App\Http\Controllers\RecolteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TraitementController;
 
@@ -38,8 +39,12 @@ Route::middleware([
     // routes visites
     Route::resource('ruchers.ruches.visites', VisiteController::class)
         ->parameters(['ruchers' => 'rucher', 'ruches' => 'ruche', 'visites' => 'visite']);
-    
+
     // routes traitement
     Route::resource('ruchers.ruches.traitements', TraitementController::class)
         ->parameters(['ruchers' => 'rucher', 'ruches' => 'ruche', 'traitements' => 'traitement']);
+
+    // routes récoltes
+    Route::resource('ruchers.ruches.recoltes', RecolteController::class)
+        ->parameters(['ruchers' => 'rucher', 'ruches' => 'ruche', 'recoltes' => 'recolte']);
 });

@@ -204,10 +204,11 @@
                                     Nouveau traitement
                                 </Link>
 
-                                <button class="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
+                                <Link :href="route('ruchers.ruches.recoltes.create', [rucher.id, ruche.id])"
+                                    class="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">
                                     <Plus class="w-4 h-4 mr-2" />
                                     Nouvelle récolte
-                                </button>
+                                </Link>
 
                                 <button @click="showMoveModal = true"
                                     class="w-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 text-sm font-medium py-3 px-4 rounded-sm flex items-center justify-center">

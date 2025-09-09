@@ -6,7 +6,6 @@ use Inertia\Inertia;
 use App\Models\Ruche;
 use App\Models\Rucher;
 use App\Models\Traitement;
-use Illuminate\Http\Request;
 use App\Services\TraitementService;
 use App\Http\Requests\StoreTraitementRequest;
 use App\Http\Requests\UpdateTraitementRequest;
