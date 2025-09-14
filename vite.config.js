@@ -20,10 +20,6 @@ export default defineConfig({
         VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
-            // Génère le manifest PWA à la racine public/
-            manifestFilename: 'manifest.json',
-            publicDir: false, // Important
-            outDir: '../public', // Génère dans public/ directement
             manifest: {
                 name: 'BeeNote - Gestion de Ruchers',
                 short_name: 'BeeNote',
@@ -33,7 +29,7 @@ export default defineConfig({
                 display: 'standalone',
                 orientation: 'portrait',
                 scope: '/',
-                start_url: '/dashboard',
+                start_url: '/',
                 icons: [
                     {
                         src: 'pwa-192x192.png',
