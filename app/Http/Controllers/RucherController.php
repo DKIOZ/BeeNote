@@ -20,8 +20,16 @@ class RucherController extends Controller
     public function index()
     {
         $this->authorize('viewAny', Rucher::class);
-        // Récupère les ruchers de l'équipe active de l'utilisateur connecté, ou une collection vide si problème
-        $ruchers = RucherService::getRuchersForTeam(request()->user());
+
+        $ruchers = RucherService::getRuchersForTeam(request()->user())
+            ->map(function ($rucher) {
+                $rucher->ruches_count = $rucher->ruches->count();
+                $rucher->ruches_actives_count = $rucher->ruches->where('statut', 'active')->count();
+                $rucher->visites_count = $rucher->ruches->sum(fn($ruche) => $ruche->visites->count());
+                $rucher->derniere_visite = $rucher->ruches->flatMap->visites->max('date_visite');
+
+                return $rucher;
+            });
 
         return Inertia::render('Ruchers/Index', [
             'ruchers' => $ruchers
