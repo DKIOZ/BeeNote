@@ -2,51 +2,41 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Str;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Ruche extends Model
 {
     /** @use HasFactory<\Database\Factories\RucheFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'nom',           // ✅ L'utilisateur peut le définir
-        'couleur',  // ✅ L'utilisateur peut le définir  
-        'type',      // ✅ L'utilisateur peut le définir
-        'statut',     // ✅ L'utilisateur peut le définir
-        'annee_reine',   // ✅ L'utilisateur peut le définir
-        'couleur_marquage_reine',   // ✅ L'utilisateur peut le définir
-        'date_installation',   // ✅ L'utilisateur peut le définir
-        'notes',   // ✅ L'utilisateur peut le définir
+        'nom',
+        'couleur',
+        'type',
+        'statut',
+        'annee_reine',
+        'couleur_marquage_reine',
+        'date_installation',
+        'notes',
     ];
 
-    public function team()
+    protected static function booted(): void
     {
-        // $this->hasOneThrough(
-        //     User::class,         // 1. Modèle final qu'on veut atteindre
-        //     Rucher::class,       // 2. Modèle intermédiaire par lequel on passe
-        //     'id',               // 3. Clé primaire du modèle intermédiaire (ruchers.id)
-        //     'id',              // 4. Clé primaire du modèle final (users.id)
-        //     'rucher_id',        // 5. Foreign key dans la table courante (ruches.rucher_id)
-        //     'user_id'     // 6. Foreign key dans le modèle intermédiaire (ruchers.user_id)
-        // );
-        return $this->hasOneThrough(Team::class, Rucher::class);
-    }
-
-    protected static function boot()
-    {
-        parent::boot();
-        
-        static::creating(function ($ruche) {
+        static::creating(function (Ruche $ruche) {
             $ruche->qr_token = Str::random(32);
         });
     }
 
-    public function getQrUrlAttribute()
+    /**
+     * Place la ruche dans un rucher. Ses tâches la suivent.
+     */
+    public function placerDans(int $rucherId): void
     {
-        return route('qr.scan', $this->qr_token);
+        $this->forceFill(['rucher_id' => $rucherId])->save();
+        Tache::where('ruche_id', $this->id)->update(['rucher_id' => $rucherId]);
     }
 
     public function rucher()
@@ -57,6 +47,11 @@ class Ruche extends Model
     public function visites()
     {
         return $this->hasMany(Visite::class);
+    }
+
+    public function derniereVisite()
+    {
+        return $this->hasOne(Visite::class)->ofMany(['date_visite' => 'max', 'id' => 'max']);
     }
 
     public function recoltes()
@@ -72,5 +67,10 @@ class Ruche extends Model
     public function taches()
     {
         return $this->hasMany(Tache::class);
+    }
+
+    public function emplacements()
+    {
+        return $this->hasMany(RucheEmplacement::class);
     }
 }

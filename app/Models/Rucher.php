@@ -4,25 +4,26 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Rucher extends Model
 {
     /** @use HasFactory<\Database\Factories\RucherFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'nom',           // ✅ L'utilisateur peut le définir
-        'localisation',  // ✅ L'utilisateur peut le définir  
-        'latitude',      // ✅ L'utilisateur peut le définir
-        'longitude',     // ✅ L'utilisateur peut le définir
-        'description',   // ✅ L'utilisateur peut le définir
+        'nom',
+        'localisation',
+        'latitude',
+        'longitude',
+        'description',
     ];
 
     public function team()
     {
         return $this->belongsTo(Team::class);
     }
-    
+
     public function ruches()
     {
         return $this->hasMany(Ruche::class);

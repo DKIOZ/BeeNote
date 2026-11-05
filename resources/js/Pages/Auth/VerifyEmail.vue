@@ -1,62 +1,31 @@
 <script setup>
+import { clearAll } from '@/terrain/store.js';
 import { computed } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import { router, useForm } from '@inertiajs/vue3';
+import AuthShell from '@/Components/AuthShell.vue';
 
-const props = defineProps({
-    status: String,
-});
+const props = defineProps({ status: String });
 
 const form = useForm({});
+const envoye = computed(() => props.status === 'verification-link-sent');
 
-const submit = () => {
-    form.post(route('verification.send'));
-};
-
-const verificationLinkSent = computed(() => props.status === 'verification-link-sent');
+function deconnecter() {
+    router.post(route('logout'), {}, {
+        onSuccess: () => {
+            router.clearHistory();
+            clearAll().catch(() => {});
+        },
+    });
+}
 </script>
 
 <template>
-    <Head title="Email Verification" />
-
-    <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo />
-        </template>
-
-        <div class="mb-4 text-sm text-gray-600">
-            Before continuing, could you verify your email address by clicking on the link we just emailed to you? If you didn't receive the email, we will gladly send you another.
-        </div>
-
-        <div v-if="verificationLinkSent" class="mb-4 font-medium text-sm text-green-600">
-            A new verification link has been sent to the email address you provided in your profile settings.
-        </div>
-
-        <form @submit.prevent="submit">
-            <div class="mt-4 flex items-center justify-between">
-                <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Resend Verification Email
-                </PrimaryButton>
-
-                <div>
-                    <Link
-                        :href="route('profile.show')"
-                        class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                        Edit Profile</Link>
-
-                    <Link
-                        :href="route('logout')"
-                        method="post"
-                        as="button"
-                        class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ms-2"
-                    >
-                        Log Out
-                    </Link>
-                </div>
-            </div>
+    <AuthShell titre="Vérifiez votre e-mail">
+        <p class="text-lg text-muted">Touchez le lien que nous venons de vous envoyer. Regardez aussi vos indésirables.</p>
+        <p v-if="envoye" role="status" class="mt-3 rounded-2xl bg-mint p-3 font-semibold text-mint-ink">Un nouveau lien vient de partir.</p>
+        <form class="mt-4" @submit.prevent="form.post(route('verification.send'))">
+            <button type="submit" class="bn-btn lg:w-full" :disabled="form.processing">Renvoyer le lien</button>
         </form>
-    </AuthenticationCard>
+        <button type="button" class="mt-2 flex min-h-[48px] w-full items-center justify-center font-semibold text-forest" @click="deconnecter">Se déconnecter</button>
+    </AuthShell>
 </template>

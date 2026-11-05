@@ -1,206 +1,62 @@
-<template>
-    <AppLayout title="Créer un Rucher">
-        <template #header>
-            <h2 class="text-lg sm:text-xl font-medium text-gray-900">
-                Créer un nouveau rucher
-            </h2>
-        </template>
-
-        <div class="py-6 sm:py-8 lg:py-12">
-            <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="bg-white border border-gray-200 rounded-sm p-4 sm:p-6">
-
-                    <form @submit.prevent="submit" class="space-y-6">
-                        
-                        <!-- Nom du rucher -->
-                        <div>
-                            <label for="nom" class="block text-sm font-medium text-gray-900 mb-2">
-                                Nom du rucher *
-                            </label>
-                            <input id="nom" v-model="form.nom" type="text"
-                                class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-                                placeholder="Ex: Rucher des Acacias"
-                                required />
-                            <div v-if="form.errors.nom" class="text-red-600 text-sm mt-1">
-                                {{ form.errors.nom }}
-                            </div>
-                        </div>
-
-                        <!-- Localisation avec autocomplete -->
-                        <div>
-                            <label for="localisation" class="block text-sm font-medium text-gray-900 mb-2">
-                                Localisation
-                            </label>
-                            <div class="relative">
-                                <input id="localisation" 
-                                    v-model="form.localisation" 
-                                    @input="searchPlaces"
-                                    @focus="showSuggestions = true" 
-                                    @blur="hideSuggestions"
-                                    type="text"
-                                    placeholder="Tapez votre ville, département..."
-                                    class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-                                    autocomplete="off" />
-
-                                <!-- Loading indicator -->
-                                <div v-if="searchLoading" class="absolute right-3 top-2.5">
-                                    <svg class="animate-spin h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                            stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor"
-                                            d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                        </path>
-                                    </svg>
-                                </div>
-
-                                <!-- Suggestions dropdown -->
-                                <div v-if="showSuggestions && suggestions.length > 0"
-                                    class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-sm shadow-lg max-h-60 overflow-y-auto">
-                                    <ul class="py-1">
-                                        <li v-for="place in suggestions" :key="place.properties.id"
-                                            @click="selectPlace(place)"
-                                            class="px-3 py-2 hover:bg-gray-50 cursor-pointer">
-                                            <div class="text-sm font-medium text-gray-900">{{ place.properties.name }}</div>
-                                            <div class="text-xs text-gray-600">
-                                                {{ place.properties.context }}
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div v-if="form.errors.localisation" class="text-red-600 text-sm mt-1">
-                                {{ form.errors.localisation }}
-                            </div>
-                        </div>
-
-                        <!-- Coordonnées GPS -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="latitude" class="block text-sm font-medium text-gray-900 mb-2">
-                                    Latitude
-                                </label>
-                                <input id="latitude" v-model="form.latitude" type="number" step="any"
-                                    class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-                                    placeholder="47.123456" />
-                                <div v-if="form.errors.latitude" class="text-red-600 text-sm mt-1">
-                                    {{ form.errors.latitude }}
-                                </div>
-                            </div>
-                            <div>
-                                <label for="longitude" class="block text-sm font-medium text-gray-900 mb-2">
-                                    Longitude
-                                </label>
-                                <input id="longitude" v-model="form.longitude" type="number" step="any"
-                                    class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-                                    placeholder="-0.123456" />
-                                <div v-if="form.errors.longitude" class="text-red-600 text-sm mt-1">
-                                    {{ form.errors.longitude }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Description -->
-                        <div>
-                            <label for="description" class="block text-sm font-medium text-gray-900 mb-2">
-                                Description
-                            </label>
-                            <textarea id="description" v-model="form.description" rows="4"
-                                class="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm leading-relaxed resize-none focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-                                placeholder="Décrivez votre rucher (environnement, accès, particularités...)"></textarea>
-                            <div v-if="form.errors.description" class="text-red-600 text-sm mt-1">
-                                {{ form.errors.description }}
-                            </div>
-                        </div>
-
-                        <!-- Boutons -->
-                        <div class="flex flex-col gap-3 pt-4 sm:flex-row sm:justify-end">
-                            <Link :href="route('ruchers.index')"
-                                class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-sm font-medium py-3 px-4 rounded-sm text-center sm:w-auto">
-                                Annuler
-                            </Link>
-                            <button type="submit" :disabled="form.processing"
-                                class="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 px-4 rounded-sm disabled:opacity-50 sm:w-auto">
-                                <span v-if="form.processing">Création...</span>
-                                <span v-else">Créer le rucher</span>
-                            </button>
-                        </div>
-                    </form>
-
-                </div>
-            </div>
-        </div>
-    </AppLayout>
-</template>
-
 <script setup>
+import { computed, ref } from 'vue';
+import { useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Link, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import BackBar from '@/Components/BackBar.vue';
+import Field from '@/Components/Field.vue';
+import Hex from '@/Components/Hex.vue';
 
-// Variables pour l'autocomplete
-const suggestions = ref([]);
-const showSuggestions = ref(false);
-const searchLoading = ref(false);
-let searchTimeout = null;
+const form = useForm({ nom: '', nombre_ruches: 3, latitude: null, longitude: null });
+const positionMessage = ref(null);
 
-// Formulaire réactif
-const form = useForm({
-    nom: '',
-    localisation: '',
-    latitude: null,
-    longitude: null,
-    description: '',
-});
+const alveoles = computed(() => Math.min(form.nombre_ruches, 12));
+const changer = (delta) => { form.nombre_ruches = Math.max(1, Math.min(50, form.nombre_ruches + delta)); };
 
-// Recherche de lieux
-async function searchPlaces() {
-    const query = form.localisation.trim();
-
-    if (query.length < 3) {
-        suggestions.value = [];
+function position() {
+    if (!navigator.geolocation) {
+        positionMessage.value = 'Votre appareil ne donne pas sa position.';
         return;
     }
 
-    // Debounce pour éviter trop de requêtes
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(async () => {
-        searchLoading.value = true;
-
-        try {
-            const response = await fetch(
-                `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&type=municipality&limit=5`
-            );
-            const data = await response.json();
-            suggestions.value = data.features || [];
-        } catch (error) {
-            console.error('Erreur recherche localisation:', error);
-            suggestions.value = [];
-        } finally {
-            searchLoading.value = false;
-        }
-    }, 300);
-}
-
-// Sélectionner un lieu
-function selectPlace(place) {
-    form.localisation = place.properties.label;
-    form.latitude = place.geometry.coordinates[1]; // Latitude
-    form.longitude = place.geometry.coordinates[0]; // Longitude
-
-    suggestions.value = [];
-    showSuggestions.value = false;
-}
-
-// Cacher suggestions quand on clique ailleurs
-function hideSuggestions() {
-    setTimeout(() => {
-        showSuggestions.value = false;
-    }, 150);
-}
-
-// Soumission du formulaire
-function submit() {
-    form.post(route('ruchers.store'));
+    positionMessage.value = 'Recherche de la position…';
+    navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+            form.latitude = Number(coords.latitude.toFixed(6));
+            form.longitude = Number(coords.longitude.toFixed(6));
+            positionMessage.value = 'Position enregistrée.';
+        },
+        () => { positionMessage.value = 'Position non disponible. Vous pourrez l\'ajouter plus tard.'; },
+        { timeout: 10000 },
+    );
 }
 </script>
+
+<template>
+    <AppLayout title="Créer un rucher" sans-nav>
+        <BackBar :href="route('ruchers.index')" titre="Où sont vos ruches ?" sous="Deux informations suffisent pour commencer." retour="Retour aux ruchers" />
+
+        <form class="flex max-w-xl flex-col gap-5 px-4 pb-6 pt-3 lg:px-0" @submit.prevent="form.post(route('ruchers.store'))">
+            <Field id="nom" v-model="form.nom" label="Nom du rucher" placeholder="Ex. : Le champ" :erreur="form.errors.nom" required />
+
+            <div>
+                <p id="nombre" class="bn-label">Nombre de ruches</p>
+                <div role="group" aria-labelledby="nombre" class="flex items-center justify-between rounded-2xl border-[1.5px] border-line bg-white p-2">
+                    <button type="button" aria-label="Une ruche de moins" class="h-16 w-16 rounded-xl bg-soft text-[28px] font-semibold text-forest" @click="changer(-1)">−</button>
+                    <span class="bn-title text-4xl" aria-live="polite">{{ form.nombre_ruches }}</span>
+                    <button type="button" aria-label="Une ruche de plus" class="h-16 w-16 rounded-xl bg-soft text-[28px] font-semibold text-forest" @click="changer(1)">+</button>
+                </div>
+                <div aria-hidden="true" class="mt-3 flex flex-wrap gap-0.5">
+                    <Hex v-for="n in alveoles" :key="n" etat="todo" :mark="n" :size="52" />
+                </div>
+                <p v-if="form.errors.nombre_ruches" class="mt-1 text-sm font-semibold text-rust">{{ form.errors.nombre_ruches }}</p>
+            </div>
+
+            <div>
+                <button type="button" class="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-mint font-bold text-mint-ink" @click="position">Ajouter ma position, pour la météo</button>
+                <p v-if="positionMessage" class="mt-1.5 text-muted" role="status">{{ positionMessage }}</p>
+            </div>
+
+            <button type="submit" class="bn-btn" :disabled="form.processing">Créer le rucher</button>
+        </form>
+    </AppLayout>
+</template>

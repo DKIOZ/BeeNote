@@ -2,79 +2,39 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GardeLeRucher;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Visite extends Model
 {
     /** @use HasFactory<\Database\Factories\VisiteFactory> */
-    use HasFactory;
+    use GardeLeRucher, HasFactory, SoftDeletes;
 
-    protected $fillable = [
-        // Informations temporelles
-        'date_visite',
-        'heure_debut',
-        'heure_fin',
-        'duree_visite',
+    protected $guarded = ['id', 'team_id', 'user_id', 'ruche_id', 'rucher_id', 'client_uuid', 'note_audio_path', 'note_audio_duree'];
 
-        // Météo & conditions
-        'meteo',
-        'temperature',
-        'humidite',
-        'force_vent',
+    // Le chemin du fichier audio ne quitte jamais le serveur.
+    protected $hidden = ['note_audio_path', 'client_uuid'];
 
-        // État général de la colonie
-        'humeur_colonie',
-        'activite_entree',
-        'estimation_population',
-        'bruit_colonie',
+    protected $appends = ['a_note_audio'];
 
-        // Observations reine
-        'reine_vue',
-        'reine_marquee',
-        'ponte_observee',
-        'qualite_ponte',
-        'cellules_royales',
-        'nombre_cellules_royales',
+    protected function casts(): array
+    {
+        return [
+            'date_visite' => 'date:Y-m-d',
+            'prochaine_visite_prevue' => 'date:Y-m-d',
+            'nourrissement_effectue' => 'boolean',
+            'traitement_applique' => 'boolean',
+            'hausse_ajoutee' => 'boolean',
+            'hausse_retiree' => 'boolean',
+        ];
+    }
 
-        // Couvain
-        'oeufs_vus',
-        'larves_vues',
-        'couvain_opercule',
-        'surface_couvain',
-        'regularite_couvain',
-
-        // Réserves
-        'reserves_miel',
-        'reserves_pollen',
-        'cadres_miel_opercule',
-
-        // Santé & parasites
-        'varroas_observes',
-        'nombre_varroas_estimes',
-        'fausse_teigne',
-        'mortalite',
-        'abeilles_mortes_quantite',
-
-        // Structure de la ruche
-        'cadres_etat',
-        'nombre_cadres_total',
-        'nombre_cadres_occupes',
-        'cire_construite',
-
-        // Actions réalisées
-        'nourrissement_effectue',
-        'type_nourrissement',
-        'quantite_nourrissement',
-        'traitement_applique',
-        'hausse_ajoutee',
-        'hausse_retiree',
-
-        // Notes & observations
-        'notes_generales',
-        'actions_prevues',
-        'prochaine_visite_prevue',
-    ];
+    public function getANoteAudioAttribute(): bool
+    {
+        return $this->note_audio_path !== null;
+    }
 
     public function user()
     {
@@ -91,12 +51,6 @@ class Visite extends Model
         return $this->belongsTo(Ruche::class);
     }
 
-    public function photos()
-    {
-        // Relations polymorphiques 
-        return $this->morphMany(Photo::class, 'photoable');
-    }
-
     public function traitements()
     {
         return $this->hasMany(Traitement::class);
@@ -108,83 +62,43 @@ class Visite extends Model
     }
 
     /**
-     * Champs considérés comme "stables" pour le pré-remplissage
+     * Résumé lisible d'une visite, aussi repris dans le registre.
      */
-    public static function getStableFields(): array
+    public function resume(): string
     {
-        return [
-            'nombre_cadres_total',
-            'nombre_cadres_occupes',
-            'reine_marquee',
-            'cellules_royales',
-            'nombre_cellules_royales',
-            'type_nourrissement',
+        $labels = [
+            'humeur_colonie' => ['calme' => 'Calme', 'agitee' => 'Agitée', 'agressive' => 'Agressive', 'tres_agressive' => 'Très agressive'],
+            'estimation_population' => ['faible' => 'Colonie faible', 'normale' => 'Colonie normale', 'forte' => 'Colonie forte'],
+            'reine_vue' => ['ok' => 'Reine vue', 'non_ok' => 'Reine pas vue'],
+            'ponte_observee' => ['ok' => 'Ponte vue', 'non_ok' => 'Pas de ponte'],
+            'cellules_royales' => ['ok' => 'Cellules royales', 'non_ok' => 'Pas de cellules'],
+            'reserves_miel' => ['suffisantes' => 'Réserves bonnes', 'insuffisantes' => 'Réserves faibles'],
+            'varroas_observes' => ['ok' => 'Varroas présents', 'non_ok' => 'Pas de varroas'],
+            'surface_couvain' => ['faible' => 'Couvain faible', 'normale' => 'Couvain normal', 'importante' => 'Couvain fort'],
+            'frelons_asiatiques' => ['absents' => 'Pas de frelons', 'quelques_uns' => 'Quelques frelons', 'nombreux' => 'Beaucoup de frelons'],
+            'fausse_teigne' => ['ok' => 'Teigne présente', 'non_ok' => 'Pas de teigne'],
+            'type_nourrissement' => ['sirop' => 'Sirop', 'candi' => 'Candi', 'pate' => 'Pâte'],
         ];
-    }
 
-    /**
-     * Champs à remettre à "non_observe"
-     */
-    public static function getObservationFields(): array
-    {
-        return [
-            'humeur_colonie',
-            'activite_entree',
-            'estimation_population',
-            'bruit_colonie',
-            'reine_vue',
-            'ponte_observee',
-            'qualite_ponte',
-            'oeufs_vus',
-            'larves_vues',
-            'couvain_opercule',
-            'surface_couvain',
-            'regularite_couvain',
-            'reserves_miel',
-            'reserves_pollen',
-            'varroas_observes',
-            'fausse_teigne',
-            'mortalite',
-            'cadres_etat',
-            'cire_construite',
-        ];
-    }
-
-    /**
-     * Préparer les données pour une nouvelle visite
-     */
-    public function prepareDataForNewVisit(): array
-    {
-        $data = [];
-
-        // Copier les champs stables
-        foreach (self::getStableFields() as $field) {
-            if (!is_null($this->$field)) {
-                $data[$field] = $this->$field;
+        $parts = [];
+        foreach ($labels as $field => $values) {
+            $value = $this->getAttribute($field);
+            if (isset($values[$value])) {
+                $parts[] = $values[$value];
             }
         }
 
-        // Remettre à "non_observe"
-        foreach (self::getObservationFields() as $field) {
-            $data[$field] = 'non_observe';
+        foreach ([
+            'nourrissement_effectue' => 'Nourri',
+            'traitement_applique' => 'Traité',
+            'hausse_ajoutee' => 'Hausse posée',
+            'hausse_retiree' => 'Hausse enlevée',
+        ] as $field => $label) {
+            if ($this->getAttribute($field)) {
+                $parts[] = $label;
+            }
         }
 
-        // Réinitialiser le reste (SANS la météo - elle sera récupérée via API)
-        $data = array_merge($data, [
-            'date_visite' => now()->format('Y-m-d'),
-            'heure_debut' => null,
-            'heure_fin' => null,
-            // Météo sera remplie par WeatherService
-            'nourrissement_effectue' => false,
-            'traitement_applique' => false,
-            'hausse_ajoutee' => false,
-            'hausse_retiree' => false,
-            'quantite_nourrissement' => null,
-            'notes_generales' => null,
-            'actions_prevues' => null,
-            'prochaine_visite_prevue' => null,
-        ]);
-
-        return $data;
+        return $parts === [] ? 'Rien de noté' : implode(', ', $parts);
     }
 }

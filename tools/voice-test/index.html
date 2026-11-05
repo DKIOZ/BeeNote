@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeeNote : test vocal</title>
+<style>
+  :root { --vert: #17382C; --miel: #FFB81C; --fond: #F6F5EF; --encre: #1B2B25; --gris: #3D4F47; --trait: #6E7A73; --alerte: #8F3808; --alerte-fond: #FDE7D8; --ok: #174A32; --ok-fond: #DDEFE3; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fond); color: var(--encre); font: 16px/1.4 system-ui, sans-serif; }
+  header { padding: 16px; background: var(--vert); color: #fff; }
+  h1 { margin: 0; font-size: 24px; }
+  main { max-width: 560px; margin: 0 auto; padding: 12px 16px 48px; }
+  section { margin-top: 14px; padding: 14px; background: #fff; border-radius: 18px; }
+  h2 { margin: 0 0 8px; font-size: 18px; }
+  p { margin: 6px 0; }
+  label { display: block; margin: 8px 0; }
+  select { width: 100%; min-height: 48px; padding: 0 10px; font: inherit; border: 1.5px solid var(--trait); border-radius: 12px; background: #fff; }
+  button { width: 100%; min-height: 56px; margin-top: 8px; font: inherit; font-weight: 700; border: 1.5px solid var(--trait); border-radius: 14px; background: #fff; color: var(--vert); cursor: pointer; }
+  button.main { background: var(--miel); border-color: var(--vert); }
+  button:disabled { opacity: .5; }
+  #env { font-size: 14px; color: var(--gris); }
+  #status { padding: 10px 12px; border-radius: 12px; background: var(--ok-fond); color: var(--ok); font-weight: 600; }
+  #status.err { background: var(--alerte-fond); color: var(--alerte); }
+  #net { font-weight: 700; }
+  #prompt { margin: 8px 0; text-align: center; font-size: 34px; font-weight: 800; line-height: 1.1; min-height: 76px; display: flex; align-items: center; justify-content: center; }
+  #heard { min-height: 24px; text-align: center; color: var(--gris); overflow-wrap: anywhere; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 5px 4px; border-top: 1px solid #ECEBE3; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header><h1>BeeNote : test vocal</h1><p id="net"></p><p id="device"></p></header>
+<main>
+  <section>
+    <h2>1. Préparer, avec du réseau</h2>
+    <p id="env"></p>
+    <label>Moteur
+      <select id="engine">
+        <option value="vosk">Vosk, dans le téléphone (46 Mo à charger)</option>
+        <option value="local">Navigateur, sur l'appareil (si disponible)</option>
+        <option value="browser">Navigateur, par défaut</option>
+      </select>
+    </label>
+    <button id="load" class="main">Charger la voix</button>
+    <p id="status" class="hidden" role="status"></p>
+    <p>Une fois chargée, passez en <strong>mode avion</strong>, sans recharger la page.</p>
+  </section>
+
+  <section>
+    <h2>2. Tester les phrases</h2>
+    <label>Situation
+      <select id="condition">
+        <option>Intérieur, sans voile</option>
+        <option>Intérieur, avec voile</option>
+        <option>Dehors, sans voile</option>
+        <option>Dehors, avec voile</option>
+        <option>Dehors, avec voile et vent</option>
+        <option>Bruit de ruche ou enregistrement</option>
+      </select>
+    </label>
+    <button id="startPhrases" class="main" disabled>Commencer (37 phrases, 5 minutes environ)</button>
+    <div id="runner" class="hidden">
+      <p id="progress"></p>
+      <div id="prompt" aria-live="polite"></div>
+      <p id="heard"></p>
+      <button id="skip">Passer cette phrase</button>
+      <button id="stopRun">Arrêter</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Parler sans mots-clés</h2>
+    <p>Pendant 60 secondes, parlez de tout et de rien. Chaque déclenchement est une fausse détection.</p>
+    <button id="startChat" disabled>Commencer</button>
+    <p id="chatInfo"></p>
+  </section>
+
+  <section>
+    <h2>4. Écran verrouillé</h2>
+    <p>Lancez, verrouillez le téléphone, dites « reine vue » trois fois en 30 secondes, puis déverrouillez et arrêtez.</p>
+    <button id="startLock" disabled>Lancer l'écoute</button>
+    <button id="stopLock" disabled>Arrêter et enregistrer</button>
+    <p id="lockInfo"></p>
+  </section>
+
+  <section>
+    <h2>5. Écho et vibration</h2>
+    <p>En mode avion et avec le voile : l'appli vous parle et vibre.</p>
+    <button id="feedback">Tester</button>
+    <button id="heardYes" disabled>Je l'ai bien entendu</button>
+    <button id="heardNo" disabled>Je n'ai rien entendu</button>
+    <p id="feedbackInfo"></p>
+  </section>
+
+  <section>
+    <h2>Résultats</h2>
+    <table><thead><tr><th>Test</th><th>Résultat</th></tr></thead><tbody id="results"></tbody></table>
+    <button id="send" class="main">Envoyer au PC (réseau requis)</button>
+    <button id="clear">Tout effacer</button>
+    <p id="sendInfo"></p>
+  </section>
+</main>
+
+<script src="matcher.js"></script>
+<script>
+  const VOSK_URL = 'https://cdn.jsdelivr.net/npm/vosk-browser@0.0.8/dist/vosk.js';
+  const VOSK_INTEGRITY = 'sha256-KVBFFVJul09MsFPPCIEcTeX7KnQAfApalX21DqqNXQw=';
+  const MODEL_URL = 'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-fr-pguyot-0.3.tar.gz';
+  const STORE_KEY = 'beenote-voice-test';
+  const TRIAL_MS = 8000;
+  const CHAT_MS = 60000;
+
+  const $ = (id) => document.getElementById(id);
+  const { PHRASES, match, grammar } = window.BeeMatcher;
+  const SpeechApi = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  let engine = null;
+  let engineName = null;
+  let loadInfo = null;
+  let wakeLock = null;
+  let cancelRun = null;
+  let lockRun = null;
+  let feedbackRun = null;
+  const runs = restore();
+
+  function restore() {
+    try {
+      return JSON.parse(localStorage.getItem(STORE_KEY)) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  function persist() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(runs));
+    } catch {
+      // Les résultats restent au moins affichés dans la page.
+    }
+  }
+
+  function addRun(run) {
+    runs.push({ ...run, at: new Date().toISOString(), engine: engineName, online: navigator.onLine, load: loadInfo, userAgent: navigator.userAgent });
+    persist();
+    renderResults();
+  }
+
+  function status(message, isError) {
+    const el = $('status');
+    el.textContent = message;
+    el.classList.remove('hidden');
+    el.classList.toggle('err', !!isError);
+  }
+
+  function median(values) {
+    if (!values.length) return null;
+    const sorted = [...values].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  }
+
+  function describe(run) {
+    if (run.type === 'phrases') {
+      const ok = run.trials.filter((t) => t.result === 'ok').length;
+      const wrong = run.trials.filter((t) => t.result === 'erreur').length;
+      const latency = median(run.trials.filter((t) => t.latencyMs != null).map((t) => t.latencyMs));
+      return `${ok}/${run.trials.length} justes, ${wrong} erreurs, délai médian ${latency ?? '?'} ms`;
+    }
+    if (run.type === 'chat') return `${run.triggers.length} fausses détections en ${Math.round(run.durationMs / 1000)} s`;
+    if (run.type === 'lock') return `${run.hiddenMatches} phrases comprises écran caché, sur ${Math.round(run.hiddenMs / 1000)} s caché`;
+    if (run.type === 'feedback') return `Voix ${run.heard ? 'entendue' : 'non entendue'}, vibration ${run.vibrate ? 'disponible' : 'indisponible'}`;
+    return '';
+  }
+
+  function renderResults() {
+    const body = $('results');
+    body.replaceChildren();
+    runs.forEach((run) => {
+      const row = document.createElement('tr');
+      const left = document.createElement('td');
+      left.textContent = `${run.engine || ''} · ${run.condition || run.type}`;
+      const right = document.createElement('td');
+      right.textContent = describe(run);
+      row.append(left, right);
+      body.append(row);
+    });
+  }
+
+  function renderEnv() {
+    const parts = [
+      `Écoute navigateur : ${SpeechApi ? 'oui' : 'non'}`,
+      `Option sur l'appareil : ${SpeechApi && typeof SpeechApi.available === 'function' ? 'oui' : 'non'}`,
+      `Vibration : ${navigator.vibrate ? 'oui' : 'non'}`,
+      `Écran allumé : ${navigator.wakeLock ? 'oui' : 'non'}`,
+    ];
+    $('env').textContent = parts.join(' · ');
+  }
+
+  function renderNet() {
+    $('net').textContent = navigator.onLine ? 'Réseau : connecté' : 'Réseau : mode avion ou hors-ligne';
+  }
+
+  function renderDevice() {
+    const phone = /Android|iPhone|iPad/.test(navigator.userAgent) || navigator.maxTouchPoints > 1;
+    $('device').textContent = phone
+      ? 'Appareil : téléphone ou tablette'
+      : 'Appareil : ordinateur. Pour le test, ouvrez cette page sur le téléphone.';
+  }
+
+  function loadScript() {
+    if (window.Vosk) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = VOSK_URL;
+      script.integrity = VOSK_INTEGRITY;
+      script.crossOrigin = 'anonymous';
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('Bibliothèque Vosk non chargée'));
+      document.head.append(script);
+    });
+  }
+
+  // Chaque moteur appelle onText(texte, estFinal). Aucun n'envoie de données à ce serveur.
+  async function createVoskEngine() {
+    await loadScript();
+    const started = performance.now();
+    const model = await window.Vosk.createModel(MODEL_URL);
+    const loadMs = Math.round(performance.now() - started);
+    let parts = null;
+
+    return {
+      loadMs,
+      chunks: 0,
+      async start(onText) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: false,
+          audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+        });
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        await context.resume();
+        const recognizer = new model.KaldiRecognizer(context.sampleRate, grammar());
+        recognizer.on('result', (message) => {
+          if (message.result.text) onText(message.result.text, true);
+        });
+        recognizer.on('partialresult', (message) => {
+          if (message.result.partial) onText(message.result.partial, false);
+        });
+        const source = context.createMediaStreamSource(stream);
+        const node = context.createScriptProcessor(4096, 1, 1);
+        node.onaudioprocess = (event) => {
+          this.chunks += 1;
+          recognizer.acceptWaveform(event.inputBuffer);
+        };
+        const mute = context.createGain();
+        mute.gain.value = 0;
+        source.connect(node);
+        node.connect(mute);
+        mute.connect(context.destination);
+        parts = { stream, context, recognizer, node };
+      },
+      stop() {
+        if (!parts) return;
+        parts.node.disconnect();
+        parts.stream.getTracks().forEach((track) => track.stop());
+        parts.recognizer.remove();
+        parts.context.close();
+        parts = null;
+      },
+    };
+  }
+
+  async function createBrowserEngine(local) {
+    if (!SpeechApi) throw new Error('Écoute navigateur indisponible sur ce téléphone');
+    let loadMs = 0;
+    if (local) {
+      if (typeof SpeechApi.available !== 'function') throw new Error('Option sur l\'appareil indisponible sur ce navigateur');
+      const options = { langs: ['fr-FR'], processLocally: true };
+      const started = performance.now();
+      let state = await SpeechApi.available(options);
+      if (state !== 'available' && typeof SpeechApi.install === 'function') {
+        if (await SpeechApi.install(options)) state = 'available';
+      }
+      loadMs = Math.round(performance.now() - started);
+      if (state !== 'available') throw new Error(`Français sur l'appareil non disponible (${state})`);
+    }
+    let recognition = null;
+    let running = false;
+    return {
+      loadMs,
+      chunks: 0,
+      errors: [],
+      async start(onText) {
+        recognition = new SpeechApi();
+        recognition.lang = 'fr-FR';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        if (local) recognition.processLocally = true;
+        recognition.onresult = (event) => {
+          this.chunks += 1;
+          for (let i = event.resultIndex; i < event.results.length; i += 1) {
+            onText(event.results[i][0].transcript, event.results[i].isFinal);
+          }
+        };
+        recognition.onerror = (event) => {
+          if (event.error !== 'no-speech') {
+            this.errors.push(event.error);
+            status(`Erreur d'écoute : ${event.error}`, true);
+          }
+        };
+        recognition.onend = () => {
+          if (running) recognition.start();
+        };
+        running = true;
+        recognition.start();
+      },
+      stop() {
+        running = false;
+        if (recognition) recognition.stop();
+      },
+    };
+  }
+
+  async function holdScreen() {
+    try {
+      if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen');
+      return !!wakeLock;
+    } catch {
+      return false;
+    }
+  }
+
+  function releaseScreen() {
+    if (wakeLock) wakeLock.release();
+    wakeLock = null;
+  }
+
+  function buzz(pattern) {
+    if (navigator.vibrate) navigator.vibrate(pattern);
+  }
+
+  function setRunningControls(active) {
+    ['startPhrases', 'startChat', 'startLock', 'load'].forEach((id) => { $(id).disabled = active; });
+  }
+
+  function trial(phrase, intent) {
+    return new Promise((resolve) => {
+      const shownAt = performance.now();
+      let lastChange = null;
+      let lastText = '';
+      let heardAll = '';
+      let timer = null;
+      const finish = (result, extra) => {
+        clearTimeout(timer);
+        current = null;
+        cancelRun = null;
+        resolve({ phrase, intent, result, heard: heardAll.trim(), ...extra });
+      };
+      const handle = (text, final) => {
+        if (!text) return;
+        if (text !== lastText) {
+          lastText = text;
+          lastChange = performance.now();
+        }
+        $('heard').textContent = text;
+        if (!final) return;
+        heardAll += ` ${text}`;
+        const found = match(text);
+        if (!found) return;
+        const now = performance.now();
+        const ok = found.intent === intent;
+        buzz(ok ? 80 : [80, 80, 80]);
+        finish(ok ? 'ok' : 'erreur', {
+          understood: found.phrase,
+          latencyMs: lastChange === null ? null : Math.round(now - lastChange),
+          responseMs: Math.round(now - shownAt),
+        });
+      };
+      current = handle;
+      timer = setTimeout(() => finish('rate', {}), TRIAL_MS);
+      cancelRun = (result) => finish(result, {});
+    });
+  }
+
+  let current = null;
+
+  function shuffled(items) {
+    const copy = [...items];
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+
+  async function runPhrases() {
+    setRunningControls(true);
+    $('runner').classList.remove('hidden');
+    const condition = $('condition').value;
+    const screenHeld = await holdScreen();
+    const trials = [];
+    let stopped = false;
+    $('stopRun').onclick = () => {
+      stopped = true;
+      if (cancelRun) cancelRun('arret');
+    };
+    $('skip').onclick = () => {
+      if (cancelRun) cancelRun('passe');
+    };
+    try {
+      await engine.start((text, final) => {
+        if (current) current(text, final);
+      });
+      const list = shuffled(PHRASES);
+      for (let i = 0; i < list.length && !stopped; i += 1) {
+        const [phrase, intent] = list[i];
+        $('progress').textContent = `${i + 1} sur ${list.length} · dites :`;
+        $('prompt').textContent = phrase;
+        $('heard').textContent = '';
+        const outcome = await trial(phrase, intent);
+        if (outcome.result !== 'arret') trials.push(outcome);
+      }
+      if (trials.length) addRun({ type: 'phrases', condition, screenHeld, trials, errors: engine.errors || [] });
+    } catch (error) {
+      status(error.message, true);
+    } finally {
+      engine.stop();
+      releaseScreen();
+      $('runner').classList.add('hidden');
+      setRunningControls(false);
+    }
+  }
+
+  async function runChat() {
+    setRunningControls(true);
+    const triggers = [];
+    const started = performance.now();
+    await holdScreen();
+    try {
+      await engine.start((text, final) => {
+        if (!final) return;
+        const found = match(text);
+        if (found) {
+          triggers.push({ heard: text, understood: found.phrase });
+          buzz(80);
+          $('chatInfo').textContent = `Fausse détection : ${found.phrase}`;
+        }
+      });
+      const tick = setInterval(() => {
+        const left = Math.max(0, Math.round((CHAT_MS - (performance.now() - started)) / 1000));
+        $('chatInfo').textContent = `Parlez encore ${left} s · ${triggers.length} fausses détections`;
+      }, 1000);
+      await new Promise((resolve) => setTimeout(resolve, CHAT_MS));
+      clearInterval(tick);
+      addRun({ type: 'chat', condition: $('condition').value, durationMs: CHAT_MS, triggers });
+      $('chatInfo').textContent = `Terminé : ${triggers.length} fausses détections`;
+    } catch (error) {
+      status(error.message, true);
+    } finally {
+      engine.stop();
+      releaseScreen();
+      setRunningControls(false);
+    }
+  }
+
+  function onLockVisibility() {
+    if (!lockRun) return;
+    const now = performance.now();
+    if (document.hidden) {
+      lockRun.hiddenAt = now;
+      lockRun.chunksAtHide = engine.chunks;
+    } else if (lockRun.hiddenAt !== null) {
+      lockRun.hiddenMs += now - lockRun.hiddenAt;
+      lockRun.hiddenChunks += engine.chunks - lockRun.chunksAtHide;
+      lockRun.hiddenAt = null;
+    }
+    lockRun.events.push({ t: Math.round(now - lockRun.started), hidden: document.hidden });
+  }
+
+  async function startLock() {
+    setRunningControls(true);
+    $('stopLock').disabled = false;
+    engine.chunks = 0;
+    lockRun = { started: performance.now(), hiddenAt: null, chunksAtHide: 0, hiddenMs: 0, hiddenChunks: 0, hiddenMatches: 0, visibleMatches: 0, matches: [], events: [] };
+    try {
+      await engine.start((text, final) => {
+        if (!final || !lockRun) return;
+        const found = match(text);
+        if (!found) return;
+        buzz(200);
+        if (document.hidden) lockRun.hiddenMatches += 1;
+        else lockRun.visibleMatches += 1;
+        lockRun.matches.push({ t: Math.round(performance.now() - lockRun.started), phrase: found.phrase, hidden: document.hidden });
+        $('lockInfo').textContent = `Compris : ${found.phrase}`;
+      });
+      $('lockInfo').textContent = 'J\'écoute. Verrouillez maintenant.';
+    } catch (error) {
+      status(error.message, true);
+    }
+  }
+
+  function stopLock() {
+    onLockVisibility();
+    engine.stop();
+    const run = lockRun;
+    lockRun = null;
+    $('stopLock').disabled = true;
+    setRunningControls(false);
+    addRun({
+      type: 'lock',
+      hiddenMs: Math.round(run.hiddenMs),
+      hiddenChunks: run.hiddenChunks,
+      hiddenMatches: run.hiddenMatches,
+      visibleMatches: run.visibleMatches,
+      matches: run.matches,
+      events: run.events,
+    });
+    $('lockInfo').textContent = `${run.hiddenMatches} phrases comprises écran caché, ${run.hiddenChunks} blocs audio reçus.`;
+  }
+
+  function testFeedback() {
+    const vibrate = !!navigator.vibrate;
+    buzz([120, 80, 120]);
+    feedbackRun = { type: 'feedback', vibrate, speechSupported: 'speechSynthesis' in window, speechError: null, voicesFr: 0 };
+    $('heardYes').disabled = false;
+    $('heardNo').disabled = false;
+    if (!feedbackRun.speechSupported) {
+      $('feedbackInfo').textContent = 'Synthèse vocale indisponible.';
+      return;
+    }
+    feedbackRun.voicesFr = speechSynthesis.getVoices().filter((voice) => voice.lang.startsWith('fr')).length;
+    const speech = new SpeechSynthesisUtterance('Ruche deux, reine vue');
+    speech.lang = 'fr-FR';
+    speech.onerror = (event) => { feedbackRun.speechError = event.error; };
+    speechSynthesis.speak(speech);
+  }
+
+  function answerFeedback(heard) {
+    if (!feedbackRun) return;
+    addRun({ ...feedbackRun, heard });
+    feedbackRun = null;
+    $('heardYes').disabled = true;
+    $('heardNo').disabled = true;
+  }
+
+  async function sendResults() {
+    try {
+      const response = await fetch('/results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userAgent: navigator.userAgent, sentAt: new Date().toISOString(), runs }),
+      });
+      if (!response.ok) throw new Error(String(response.status));
+      $('sendInfo').textContent = 'Résultats envoyés au PC.';
+    } catch {
+      $('sendInfo').textContent = 'Envoi impossible : reconnectez le téléphone au Wi-Fi et vérifiez que le serveur tourne.';
+    }
+  }
+
+  async function loadEngine() {
+    const choice = $('engine').value;
+    $('load').disabled = true;
+    status('Chargement en cours…');
+    try {
+      if (engine) engine.stop();
+      engine = choice === 'vosk' ? await createVoskEngine() : await createBrowserEngine(choice === 'local');
+      engineName = choice;
+      loadInfo = { loadMs: engine.loadMs };
+      status(`Prêt en ${Math.round(engine.loadMs / 1000)} s. Passez en mode avion, puis lancez un test.`);
+      ['startPhrases', 'startChat', 'startLock'].forEach((id) => { $(id).disabled = false; });
+    } catch (error) {
+      status(`Échec : ${error.message || error}`, true);
+    } finally {
+      $('load').disabled = false;
+    }
+  }
+
+  $('load').onclick = loadEngine;
+  $('startPhrases').onclick = runPhrases;
+  $('startChat').onclick = runChat;
+  $('startLock').onclick = startLock;
+  $('stopLock').onclick = stopLock;
+  $('feedback').onclick = testFeedback;
+  $('heardYes').onclick = () => answerFeedback(true);
+  $('heardNo').onclick = () => answerFeedback(false);
+  $('send').onclick = sendResults;
+  $('clear').onclick = () => {
+    runs.length = 0;
+    persist();
+    renderResults();
+  };
+  document.addEventListener('visibilitychange', onLockVisibility);
+  window.addEventListener('online', renderNet);
+  window.addEventListener('offline', renderNet);
+  renderNet();
+  renderDevice();
+  renderEnv();
+  renderResults();
+</script>
+</body>
+</html>

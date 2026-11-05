@@ -10,6 +10,8 @@ class Tache extends Model
     /** @use HasFactory<\Database\Factories\TacheFactory> */
     use HasFactory;
 
+    protected $casts = ['date_prevue' => 'date:Y-m-d', 'date_realisee' => 'date:Y-m-d'];
+
     protected $fillable = [
         // Informations de base
         'titre',

@@ -1,61 +1,60 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# BeeNote
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Le carnet de ruches qui fonctionne sans réseau, à la voix ou au toucher.
 
-## About Laravel
+Au rucher, dire une phrase revient à toucher le bouton qui la porte. Tout est gardé sur le téléphone, puis envoyé au retour du réseau. Le registre (visites, traitements, récoltes, déplacements) se télécharge en PDF ou pour un tableur.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Pile technique
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Laravel 12, Inertia, Vue 3, Tailwind, Vosk (reconnaissance vocale dans le navigateur), Workbox (service worker).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Installer
 
-## Learning Laravel
+```bash
+composer install
+npm ci
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+npm run build
+php artisan serve
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Données d'essai, jamais en production :
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```bash
+DEMO_PASSWORD=choisissez-un-mot-de-passe php artisan db:seed --class=DemoSeeder
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Le compte créé est `demo@beenote.test`.
 
-## Laravel Sponsors
+## Tester
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+php artisan test
+npm test
+```
 
-### Premium Partners
+## Mode terrain
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+- `resources/js/terrain/useTerrain.js` : état de la visite, file d'envoi, voix.
+- `resources/js/terrain/voice/engine.js` : moteur vocal, remplaçable (`load`, `start`, `stop`).
+- `resources/js/terrain/voice/phrases.js` : phrases reconnues. Une phrase doit être dite seule.
+- `app/Http/Controllers/TerrainController.php` : envoi par lots. Chaque visite porte un identifiant généré sur le téléphone, donc un envoi répété ne crée pas de doublon.
 
-## Contributing
+Le micro et le service worker exigent HTTPS, sauf sur `localhost`. `tools/voice-test` contient un banc d'essai de la reconnaissance vocale.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Avant une mise en production
 
-## Code of Conduct
+- `APP_ENV=production`, `APP_DEBUG=false`, HTTPS, serveur de mail configuré : la vérification d'e-mail s'active en production.
+- Installer sans les outils de développement : `composer install --no-dev --optimize-autoloader`.
+- Derrière un proxy, renseigner `TRUSTED_PROXIES` (ses adresses). Sinon les limites par adresse IP se trompent.
+- Héberger le modèle vocal sur vos serveurs et renseigner `VOICE_MODEL_URL`. L'adresse par défaut est celle de la démo de vosk-browser, un tiers dont le contenu s'exécute sur le téléphone. Vérifier l'empreinte du fichier avant de le publier (`sha256sum vosk-model-small-fr-pguyot-0.3.tar.gz`).
+- Faire valider `resources/markdown/policy.md` et `resources/markdown/terms.md`.
+- Vérifier les champs légaux du registre d'élevage.
+- Lancer le planificateur (`php artisan schedule:run` chaque minute) : il vide la corbeille après 30 jours.
+- Sauvegarder la base et `storage/app/private`, qui contient les notes vocales.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## À valider sur le terrain
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Mesuré jusqu'ici sur PC uniquement. Restent à tester sur de vrais téléphones : reconnaissance en mode avion, écran verrouillé, voile, vent et bourdonnement.

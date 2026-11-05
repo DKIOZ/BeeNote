@@ -18,34 +18,75 @@ export default defineConfig({
             },
         }),
         VitePWA({
+            // L'enregistrement est fait dans app.js : /sw.js est servi depuis la racine par Laravel.
+            injectRegister: false,
+            includeManifestIcons: false,
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
             manifest: {
-                name: 'BeeNote - Gestion de Ruchers',
+                id: '/',
+                name: 'BeeNote',
                 short_name: 'BeeNote',
-                description: 'Application de suivi et gestion de ruchers pour apiculteurs',
-                theme_color: '#f59e0b',
-                background_color: '#ffffff',
+                description: 'Le carnet de vos ruches, à la voix et sans réseau',
+                lang: 'fr',
+                theme_color: '#17382C',
+                background_color: '#F6F5EF',
                 display: 'standalone',
                 orientation: 'portrait',
                 scope: '/',
-                start_url: '/',
+                start_url: '/terrain',
                 icons: [
-                    {
-                        src: 'pwa-192x192.png',
-                        sizes: '192x192',
-                        type: 'image/png'
-                    },
-                    {
-                        src: 'pwa-512x512.png',
-                        sizes: '512x512',
-                        type: 'image/png'
-                    }
-                ]
+                    { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+                    { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+                    { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+                ],
             },
             workbox: {
-                globPatterns: ['**/*.{js,css,html,ico,png,svg}']
-            }
-        })
+                inlineWorkboxRuntime: true,
+                clientsClaim: true,
+                skipWaiting: true,
+                cleanupOutdatedCaches: true,
+                globPatterns: ['**/*.{js,css,woff2}'],
+                // Le moteur vocal doit rester disponible sans réseau.
+                maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
+                modifyURLPrefix: { '': '/build/' },
+                navigateFallback: null,
+                runtimeCaching: [
+                    {
+                        urlPattern: ({ request, url }) => request.mode === 'navigate' || url.pathname === '/terrain',
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'bn-pages',
+                            networkTimeoutSeconds: 4,
+                            plugins: [
+                                {
+                                    // Seule la page terrain est gardée : aucune autre page privée n'est stockée.
+                                    cacheWillUpdate: async ({ request, response }) =>
+                                        new URL(request.url).pathname === '/terrain' && response.status === 200 && !response.redirected && (response.headers.get('content-type') ?? '').includes('text/html')
+                                            ? response
+                                            : null,
+                                    handlerDidError: async () => (await caches.match('/terrain')) || Response.error(),
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        urlPattern: ({ url }) => /\.tar\.gz$/.test(url.pathname),
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'bn-voix',
+                            cacheableResponse: { statuses: [200] },
+                        },
+                    },
+                    {
+                        urlPattern: ({ url }) => url.pathname.startsWith('/icons/'),
+                        handler: 'CacheFirst',
+                        options: { cacheName: 'bn-icones' },
+                    },
+                ],
+            },
+        }),
     ],
+    build: {
+        chunkSizeWarningLimit: 7000,
+    },
 });

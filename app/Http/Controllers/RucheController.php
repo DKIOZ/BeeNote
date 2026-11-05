@@ -2,219 +2,108 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
 use App\Models\Ruche;
 use App\Models\Rucher;
+use App\Services\RucherOverview;
+use App\Services\RegistreService;
 use Illuminate\Http\Request;
-use chillerlan\QRCode\QRCode;
-use App\Services\RucheService;
-use App\Services\RucherService;
-use chillerlan\QRCode\QROptions;
-use App\Http\Requests\MoveRucheRequest;
-use App\Http\Requests\StoreRucheRequest;
-use App\Http\Requests\UpdateRucheRequest;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class RucheController extends Controller
 {
-    use AuthorizesRequests;
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Rucher $rucher)
-    {
-        $this->authorize('view', $rucher);
-
-        // Récupérer les ruches de ce rucher
-        $ruches = $rucher->ruches;
-
-        return Inertia::render('Ruches/Index', [
-            'rucher' => $rucher,
-            'ruches' => $ruches
-        ]);
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create(Rucher $rucher)
     {
-        // Vérifier que le rucher appartient à la team
-        $this->authorize('view', $rucher);
+        $this->authorize('update', $rucher);
 
-        return Inertia::render('Ruches/Create', [
-            'rucher' => $rucher
+        return Inertia::render('Ruches/Form', [
+            'rucher' => $rucher->only(['id', 'nom']),
+            'ruche' => null,
+            'suggestion' => 'Ruche '.(collect($rucher->ruches()->pluck('nom'))->map(fn ($nom) => RucherOverview::numeroDuNom($nom) ?? 0)->push($rucher->ruches()->count())->max() + 1),
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreRucheRequest $request, Rucher $rucher)
+    public function store(Request $request, Rucher $rucher)
     {
-        // Vérifier l'accès au rucher
-        $this->authorize('view', $rucher);
+        $this->authorize('update', $rucher);
+        $ruche = $rucher->ruches()->create($request->validate($this->rules()));
 
-        // Créer la ruche via le service
-        $ruche = RucheService::createForRucher(
-            $request->validated(),
-            $rucher,
-            $request->user()
-        );
-
-        return redirect()->route('ruchers.ruches.index', $rucher)
-            ->with('message', 'Ruche créée avec succès !');
+        return redirect()->route('ruchers.show', $rucher)->with('message', "{$ruche->nom} ajoutée.");
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Rucher $rucher, Ruche $ruche)
+    public function show(Request $request, Ruche $ruche)
     {
-        $this->authorize('view', $rucher);
+        $this->authorizeRuche($ruche);
 
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
-
-        // Charger toutes les relations de l'historique
-        $ruche->load([
-            'traitements' => function ($query) {
-                $query->where('team_id', request()->user()->current_team_id)
-                    ->orderBy('date_traitement', 'desc');
-            },
-            'visites' => function ($query) {
-                $query->where('team_id', request()->user()->current_team_id)
-                    ->orderBy('date_visite', 'desc');
-            },
-            'recoltes' => function ($query) {
-                $query->where('team_id', request()->user()->current_team_id)
-                    ->orderBy('date_recolte', 'desc');
-            }
-        ]);
-
-        $availableRuchers = RucherService::getRuchersForTeam(request()->user())
-            ->where('id', '!=', $rucher->id)
-            ->values();
+        $apercu = RucherOverview::ruchers($request->user())
+            ->firstWhere('id', $ruche->rucher_id)['ruches']
+            ->firstWhere('id', $ruche->id);
 
         return Inertia::render('Ruches/Show', [
-            'rucher' => $rucher,
-            'ruche' => $ruche,
-            'availableRuchers' => $availableRuchers
+            'ruche' => [
+                ...$ruche->only(['id', 'nom', 'couleur', 'type', 'statut', 'annee_reine', 'couleur_marquage_reine', 'date_installation', 'notes', 'qr_token']),
+                'rucher' => $ruche->rucher->only(['id', 'nom']),
+                'numero' => $apercu['numero'],
+                'etat' => $apercu['etat'],
+                'taches' => $apercu['taches'],
+                'prochaine_visite' => $apercu['prochaine_visite'],
+            ],
+            'historique' => RegistreService::pourRuche($ruche),
+            'peutModifier' => $request->user()->can('update', $ruche->rucher),
         ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Rucher $rucher, Ruche $ruche)
+    public function edit(Request $request, Ruche $ruche)
     {
-        // Vérifier l'accès au rucher
-        $this->authorize('view', $rucher);
+        $this->authorizeRuche($ruche, 'update');
 
-        // Vérifier que la ruche appartient bien à ce rucher
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
-
-        return Inertia::render('Ruches/Edit', [
-            'rucher' => $rucher,
-            'ruche' => $ruche
+        return Inertia::render('Ruches/Form', [
+            'rucher' => $ruche->rucher->only(['id', 'nom']),
+            'ruche' => $ruche->only(['id', 'nom', 'couleur', 'type', 'statut', 'annee_reine', 'couleur_marquage_reine', 'date_installation', 'notes']),
+            'peutSupprimer' => $request->user()->can('delete', $ruche->rucher),
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateRucheRequest $request, Rucher $rucher, Ruche $ruche)
+    public function update(Request $request, Ruche $ruche)
     {
-        // Vérifier l'accès au rucher
-        $this->authorize('view', $rucher);
+        $this->authorizeRuche($ruche, 'update');
+        $ruche->update($request->validate($this->rules()));
 
-        // Vérifier que la ruche appartient bien à ce rucher
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
+        return redirect()->route('ruches.show', $ruche)->with('message', 'Ruche enregistrée.');
+    }
 
-        // Mettre à jour la ruche via le service
-        $ruche = RucheService::updateForRucher($ruche, $request->validated(), $request->user());
+    public function destroy(Ruche $ruche)
+    {
+        $this->authorizeRuche($ruche, 'delete');
+        $rucherId = $ruche->rucher_id;
+        $ruche->delete();
 
-        return redirect()->route('ruchers.ruches.show', [$rucher->id, $ruche->id])
-            ->with('message', 'Ruche modifiée avec succès !');
+        return redirect()->route('ruchers.show', $rucherId)->with('message', 'Ruche mise à la corbeille.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Un QR code d'une autre équipe répond 404 : il ne révèle pas l'existence de la ruche.
      */
-    public function destroy(Rucher $rucher, Ruche $ruche)
+    public function scan(Request $request, string $token)
     {
-        // Vérifier l'accès au rucher
-        $this->authorize('view', $rucher);
+        $ruche = Ruche::where('qr_token', $token)
+            ->whereHas('rucher', fn ($q) => $q->where('team_id', $request->user()->current_team_id))
+            ->firstOrFail();
 
-        // Vérifier que la ruche appartient bien à ce rucher
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
-
-        // Supprimer la ruche via le service
-        RucheService::deleteForRucher($ruche, request()->user());
-
-        return redirect()->route('ruchers.ruches.index', $rucher)
-            ->with('message', "Ruche {$ruche->nom} supprimée avec succès !");
+        return redirect()->route('ruches.show', $ruche);
     }
 
-
-    public function move(MoveRucheRequest $request, Rucher $rucher, Ruche $ruche)
+    private function rules(): array
     {
-        // Vérifier l'accès au rucher actuel
-        $this->authorize('view', $rucher);
-
-        // Vérifier que la ruche appartient bien à ce rucher
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
-
-        // Récupérer le rucher de destination
-        $newRucher = Rucher::findOrFail($request->rucher_id);
-
-        // Vérifier l'accès au rucher de destination
-        $this->authorize('view', $newRucher);
-
-        // Déplacer la ruche
-        $ruche = RucheService::moveToRucher($ruche, $newRucher, $request->user());
-
-        return redirect()->route('ruchers.ruches.show', [$newRucher->id, $ruche->id])
-            ->with('message', "Ruche {$ruche->nom} déplacée vers {$newRucher->nom} avec succès !");
-    }
-
-    public function scanQr($token)
-    {
-        $ruche = Ruche::where('qr_token', $token)->firstOrFail();
-
-        return redirect()->route('ruchers.ruches.show', [
-            'rucher' => $ruche->rucher_id,
-            'ruche' => $ruche->id
-        ])->with('qr_scanned', true);
-    }
-
-    public function generateQr(Rucher $rucher, Ruche $ruche)
-    {
-        $this->authorize('view', $rucher);
-
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404);
-        }
-
-        $options = new QROptions([
-            'outputType' => QRCode::OUTPUT_IMAGE_PNG,
-            'eccLevel' => QRCode::ECC_L,
-            'scale' => 5,
-            'imageBase64' => false,
-        ]);
-
-        $qrcode = new QRCode($options);
-        $png = $qrcode->render(route('qr.scan', $ruche->qr_token));
-
-        return response($png, 200)->header('Content-Type', 'image/png');
+        return [
+            'nom' => ['required', 'string', 'max:50'],
+            'couleur' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'type' => ['sometimes', 'filled', Rule::in(['dadant', 'warre', 'langstroth', 'ktbh', 'autre'])],
+            'statut' => ['sometimes', 'filled', Rule::in(['active', 'inactive', 'morte'])],
+            'annee_reine' => ['nullable', 'integer', 'min:2000', 'max:'.(now()->year + 1)],
+            'couleur_marquage_reine' => ['nullable', Rule::in(['blanc', 'jaune', 'rouge', 'vert', 'bleu'])],
+            'date_installation' => ['nullable', 'date', 'before_or_equal:today'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ];
     }
 }

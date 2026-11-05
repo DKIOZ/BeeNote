@@ -1,447 +1,164 @@
+<script setup>
+import { computed, onMounted, ref } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import Comb from '@/Components/Comb.vue';
+import Hex from '@/Components/Hex.vue';
+import Icon from '@/Components/Icon.vue';
+import { dateCourte, dateFr } from '@/terrain/fields.js';
+import { pendingCount } from '@/terrain/store.js';
+
+const props = defineProps({
+    ruchers: Array,
+    taches: Array,
+    aCompleter: Array,
+    saison: [Object, Array],
+    aujourdhui: String,
+});
+
+const MOIS = ['Janv.', 'Févr.', 'Mars', 'Avril', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+
+const vide = computed(() => props.ruchers.length === 0);
+const priorite = computed(() => [...props.ruchers].sort((a, b) => b.a_visiter - a.a_visiter)[0] ?? null);
+const moisCourant = computed(() => Number(props.aujourdhui.slice(5, 7)));
+const titre = computed(() => {
+    const rucher = priorite.value;
+    if (!rucher) {
+        return '';
+    }
+    if (rucher.a_visiter === 0) {
+        return `Tout est à jour à ${rucher.nom}`;
+    }
+
+    return `${rucher.a_visiter} ${rucher.a_visiter > 1 ? 'ruches' : 'ruche'} à visiter : ${rucher.nom}`;
+});
+
+const attente = ref(0);
+const voixPrete = ref(true);
+
+onMounted(async () => {
+    attente.value = await pendingCount().catch(() => 0);
+    try {
+        voixPrete.value = localStorage.getItem('bn-voix-prete') === '1';
+    } catch {
+        voixPrete.value = false;
+    }
+});
+
+const cocher = (tache) => router.patch(route('taches.toggle', tache.id), {}, { preserveScroll: true });
+</script>
+
 <template>
-    <AppLayout title="Tableau de Bord">
-        <template #header>
-            <h2 class="text-lg sm:text-xl font-medium text-gray-900">
-                Tableau de Bord
-            </h2>
+    <AppLayout title="Accueil">
+        <template v-if="vide">
+            <section class="rounded-b-hero bg-forest px-6 pb-7 pt-10 text-white lg:rounded-hero">
+                <svg aria-hidden="true" class="mb-4" width="180" height="120" viewBox="0 0 180 120" fill="none" stroke="#FFB81C" stroke-width="3" stroke-linejoin="round" stroke-dasharray="6 6"><path d="M50 8l36 21v42L50 92 14 71V29z" /><path d="M130 8l36 21v42l-36 21-36-21V29z" /></svg>
+                <h1 class="bn-title text-4xl leading-tight">Vos ruches vous attendent ici</h1>
+                <p class="mt-2 text-lg text-sage">Créez votre rucher en moins d'une minute.</p>
+                <Link :href="route('ruchers.create')" class="bn-btn-flat mt-5">Créer mon rucher</Link>
+            </section>
+            <ol class="mx-4 mt-5 flex flex-col gap-2.5 lg:mx-0">
+                <li v-for="(etape, index) in ['Nommez votre rucher', 'Indiquez le nombre de ruches', 'Notez votre première visite']" :key="etape" class="bn-card flex min-h-[64px] items-center gap-3 px-3.5 py-2 font-semibold">
+                    <Hex etat="todo" :mark="index + 1" :size="38" />
+                    {{ etape }}
+                </li>
+            </ol>
         </template>
 
-        <div class="py-6 sm:py-8 lg:py-12">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-
-                <!-- Alerte urgente si problèmes -->
-                <div v-if="stats.ruches_mortes > 0" class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
-                    <div class="flex items-center">
-                        <AlertTriangle class="h-5 w-5 text-red-400 mr-3" />
-                        <p class="text-sm text-red-700">
-                            <span class="font-semibold">Attention !</span>
-                            {{ stats.ruches_mortes }} ruche{{ stats.ruches_mortes > 1 ? 's' : '' }}
-                            {{ stats.ruches_mortes > 1 ? 'sont mortes' : 'est morte' }}. Action requise.
-                        </p>
-                    </div>
+        <div v-else class="lg:flex lg:flex-col lg:gap-6">
+            <header class="hidden items-end justify-between gap-6 lg:flex">
+                <div>
+                    <p class="text-muted">{{ dateFr(aujourdhui) }}</p>
+                    <h1 class="bn-title mt-1 text-4xl leading-tight">Votre saison en un coup d'œil</h1>
                 </div>
-
-                <!-- Vue d'ensemble avec codes couleur -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- Total ruchers -->
-                    <div
-                        class="bg-gradient-to-br from-blue-50 to-blue-100 border-l-4 border-blue-500 rounded-lg p-4 shadow-sm">
-                        <div class="flex items-center gap-3 mb-2">
-                            <Building2 class="h-5 w-5 text-blue-600 flex-shrink-0" />
-                            <span class="text-sm font-semibold text-blue-800">Ruchers</span>
-                        </div>
-                        <div class="text-3xl font-bold text-blue-900 mb-3">
-                            {{ stats.total_ruchers }}
-                        </div>
-                        <Link :href="route('ruchers.index')"
-                            class="text-xs text-blue-700 hover:text-blue-900 font-medium inline-flex items-center">
-                        Voir tous
-                        <ArrowRight class="h-3 w-3 ml-1" />
-                        </Link>
-                    </div>
-
-                    <!-- Total ruches -->
-                    <div
-                        class="bg-gradient-to-br from-amber-50 to-amber-100 border-l-4 border-amber-500 rounded-lg p-4 shadow-sm">
-                        <div class="flex items-center gap-3 mb-2">
-                            <Package class="h-5 w-5 text-amber-600 flex-shrink-0" />
-                            <span class="text-sm font-semibold text-amber-800">Total Ruches</span>
-                        </div>
-                        <div class="text-3xl font-bold text-amber-900 mb-1">
-                            {{ stats.total_ruches }}
-                        </div>
-                        <div class="relative">
-                            <button @click="showRuchersDropdown = !showRuchersDropdown"
-                                class="text-xs text-amber-700 hover:text-amber-900 font-medium inline-flex items-center">
-                                Par rucher
-                                <ChevronDown :class="{ 'rotate-180': showRuchersDropdown }"
-                                    class="h-3 w-3 ml-1 transition-transform" />
-                            </button>
-
-                            <!-- Dropdown amélioré -->
-                            <div v-if="showRuchersDropdown"
-                                class="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-20 py-2 max-h-48 overflow-y-auto min-w-48">
-                                <Link v-for="rucher in availableRuchers" :key="rucher.id"
-                                    :href="route('ruchers.ruches.index', rucher.id)"
-                                    class="block px-4 py-3 text-sm text-gray-700 hover:bg-amber-50 flex items-center justify-between group"
-                                    @click="showRuchersDropdown = false">
-                                <span class="truncate font-medium">{{ rucher.nom }}</span>
-                                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded-full ml-2">
-                                    {{ rucher.ruches_count }}
-                                </span>
-                                </Link>
-
-                                <div v-if="availableRuchers.length === 0"
-                                    class="px-4 py-3 text-sm text-gray-500 italic text-center">
-                                    Aucun rucher avec des ruches
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Ruches actives - VERT -->
-                    <div
-                        class="bg-gradient-to-br from-green-50 to-green-100 border-l-4 border-green-500 rounded-lg p-4 shadow-sm">
-                        <div class="flex items-center gap-3 mb-2">
-                            <CheckCircle class="h-5 w-5 text-green-600 flex-shrink-0" />
-                            <span class="text-sm font-semibold text-green-800">✅ Actives</span>
-                        </div>
-                        <div class="flex items-baseline gap-2 mb-1">
-                            <span class="text-3xl font-bold text-green-900">
-                                {{ stats.ruches_actives }}
-                            </span>
-                            <span v-if="stats.total_ruches > 0" class="text-sm font-semibold text-green-700">
-                                {{ Math.round((stats.ruches_actives / stats.total_ruches) * 100) }}%
-                            </span>
-                        </div>
-                        <p class="text-xs text-green-700 font-medium">Tout va bien ! 🐝</p>
-                    </div>
-
-                    <!-- Ruches à surveiller - ROUGE/ORANGE -->
-                    <div :class="{
-                        'bg-gradient-to-br from-red-50 to-red-100 border-l-4 border-red-500': stats.ruches_mortes > 0,
-                        'bg-gradient-to-br from-orange-50 to-orange-100 border-l-4 border-orange-500': stats.ruches_mortes === 0 && (stats.ruches_inactives > 0),
-                        'bg-gradient-to-br from-gray-50 to-gray-100 border-l-4 border-gray-300': stats.ruches_inactives === 0 && stats.ruches_mortes === 0
-                    }" class="rounded-lg p-4 shadow-sm">
-                        <div class="flex items-center gap-3 mb-2">
-                            <AlertCircle :class="{
-                                'text-red-600': stats.ruches_mortes > 0,
-                                'text-orange-600': stats.ruches_mortes === 0 && stats.ruches_inactives > 0,
-                                'text-gray-400': stats.ruches_inactives === 0 && stats.ruches_mortes === 0
-                            }" class="h-5 w-5 flex-shrink-0" />
-                            <span :class="{
-                                'text-red-800': stats.ruches_mortes > 0,
-                                'text-orange-800': stats.ruches_mortes === 0 && stats.ruches_inactives > 0,
-                                'text-gray-600': stats.ruches_inactives === 0 && stats.ruches_mortes === 0
-                            }" class="text-sm font-semibold">
-                                {{ stats.ruches_mortes > 0 ? '🚨 Urgent' : stats.ruches_inactives > 0 ? '⚠️ À surveiller' : '✅ Rien à signaler' }}
-                            </span>
-                        </div>
-                        <div :class="{
-                            'text-red-900': stats.ruches_mortes > 0,
-                            'text-orange-900': stats.ruches_mortes === 0 && stats.ruches_inactives > 0,
-                            'text-gray-600': stats.ruches_inactives === 0 && stats.ruches_mortes === 0
-                        }" class="text-3xl font-bold mb-1">
-                            {{ stats.ruches_inactives + stats.ruches_mortes || '0' }}
-                        </div>
-                        <div :class="{
-                            'text-red-700': stats.ruches_mortes > 0,
-                            'text-orange-700': stats.ruches_mortes === 0 && stats.ruches_inactives > 0,
-                            'text-gray-500': stats.ruches_inactives === 0 && stats.ruches_mortes === 0
-                        }" class="text-xs font-medium space-x-2">
-                            <span v-if="stats.ruches_inactives > 0">{{ stats.ruches_inactives }} inactives</span>
-                            <span v-if="stats.ruches_mortes > 0" class="text-red-600 font-bold">{{ stats.ruches_mortes
-                                }}
-                                mortes</span>
-                            <span v-if="stats.ruches_inactives === 0 && stats.ruches_mortes === 0">Parfait !</span>
-                        </div>
-                    </div>
+                <div class="flex flex-none items-center gap-3">
+                    <Link v-if="attente" :href="route('terrain') + '#synchro'" class="bn-btn-2">{{ attente }} à envoyer</Link>
+                    <Link :href="route('visites.create')" class="bn-btn">Noter une visite</Link>
                 </div>
+            </header>
 
-                <!-- Actions rapides avec couleurs -->
-                <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-                        <Zap class="h-5 w-5 text-yellow-500 mr-2" />
-                        Actions rapides
-                    </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <!-- Nouveau rucher -->
-                        <Link :href="route('ruchers.create')"
-                            class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-4 px-6 rounded-lg flex items-center justify-center shadow-md transition-all hover:shadow-lg transform hover:-translate-y-0.5">
-                        <Plus class="mr-2 h-5 w-5" />
-                        Nouveau rucher
-                        </Link>
-
-                        <!-- Visite rapide -->
-                        <div v-if="stats.total_ruches > 0" class="relative">
-                            <button @click="showVisiteDropdown = !showVisiteDropdown"
-                                class="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-4 px-6 rounded-lg flex items-center justify-center shadow-md transition-all hover:shadow-lg transform hover:-translate-y-0.5">
-                                <Calendar class="mr-2 h-5 w-5" />
-                                Nouvelle visite
-                                <ChevronDown class="ml-2 h-4 w-4" />
-                            </button>
-
-                            <!-- Dropdown sélection ruche -->
-                            <div v-if="showVisiteDropdown"
-                                class="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 py-2 max-h-48 overflow-y-auto">
-                                <div class="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">
-                                    Choisir une ruche :
-                                </div>
-                                <template v-for="rucher in ruchersRecents" :key="rucher.id">
-                                    <div v-if="rucher.ruches && rucher.ruches.length > 0">
-                                        <div class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50">
-                                            📍 {{ rucher.nom }}
-                                        </div>
-                                        <Link v-for="ruche in rucher.ruches.slice(0, 3)" :key="ruche.id"
-                                            :href="route('ruchers.ruches.visites.create', [rucher.id, ruche.id])"
-                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 flex items-center gap-2"
-                                            @click="showVisiteDropdown = false">
-                                        <div v-if="ruche.couleur" :style="{ backgroundColor: ruche.couleur }"
-                                            class="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0">
-                                        </div>
-                                        <span class="truncate">{{ ruche.nom }}</span>
-                                        <span :class="{
-                                            'text-green-600': ruche.statut === 'active',
-                                            'text-orange-600': ruche.statut === 'inactive',
-                                            'text-red-600': ruche.statut === 'morte'
-                                        }" class="text-xs">
-                                            {{ getStatutDisplay(ruche.statut).replace(/[🚨⚠️✅]/g, '') }}
-                                        </span>
-                                        </Link>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Traitement rapide -->
-                        <div v-if="stats.total_ruches > 0" class="relative">
-                            <button @click="showTraitementDropdown = !showTraitementDropdown"
-                                class="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-4 px-6 rounded-lg flex items-center justify-center shadow-md transition-all hover:shadow-lg transform hover:-translate-y-0.5">
-                                <Pill class="mr-2 h-5 w-5" />
-                                Traitement
-                                <ChevronDown class="ml-2 h-4 w-4" />
-                            </button>
-
-                            <!-- Dropdown sélection ruche -->
-                            <div v-if="showTraitementDropdown"
-                                class="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 py-2 max-h-48 overflow-y-auto">
-                                <div class="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">
-                                    Choisir une ruche :
-                                </div>
-                                <template v-for="rucher in ruchersRecents" :key="rucher.id">
-                                    <div v-if="rucher.ruches && rucher.ruches.length > 0">
-                                        <div class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50">
-                                            📍 {{ rucher.nom }}
-                                        </div>
-                                        <Link v-for="ruche in rucher.ruches.slice(0, 3)" :key="ruche.id"
-                                            :href="route('ruchers.ruches.traitements.create', [rucher.id, ruche.id])"
-                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 flex items-center gap-2"
-                                            @click="showTraitementDropdown = false">
-                                        <div v-if="ruche.couleur" :style="{ backgroundColor: ruche.couleur }"
-                                            class="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0">
-                                        </div>
-                                        <span class="truncate">{{ ruche.nom }}</span>
-                                        <span :class="{
-                                            'text-green-600': ruche.statut === 'active',
-                                            'text-orange-600': ruche.statut === 'inactive',
-                                            'text-red-600': ruche.statut === 'morte'
-                                        }" class="text-xs">
-                                            {{ getStatutDisplay(ruche.statut).replace(/[🚨⚠️✅]/g, '') }}
-                                        </span>
-                                        </Link>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Récolte rapide -->
-                        <div v-if="stats.total_ruches > 0" class="relative">
-                            <button @click="showRecolteDropdown = !showRecolteDropdown"
-                                class="w-full bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold py-4 px-6 rounded-lg flex items-center justify-center shadow-md transition-all hover:shadow-lg transform hover:-translate-y-0.5">
-                                <Droplets class="mr-2 h-5 w-5" />
-                                Récolte
-                                <ChevronDown class="ml-2 h-4 w-4" />
-                            </button>
-
-                            <!-- Dropdown sélection ruche -->
-                            <div v-if="showRecolteDropdown"
-                                class="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 py-2 max-h-48 overflow-y-auto">
-                                <div class="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">
-                                    Choisir une ruche :
-                                </div>
-                                <template v-for="rucher in ruchersRecents" :key="rucher.id">
-                                    <div v-if="rucher.ruches && rucher.ruches.length > 0">
-                                        <div class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50">
-                                            📍 {{ rucher.nom }}
-                                        </div>
-                                        <Link v-for="ruche in rucher.ruches.slice(0, 3)" :key="ruche.id"
-                                            :href="route('ruchers.ruches.recoltes.create', [rucher.id, ruche.id])"
-                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 flex items-center gap-2"
-                                            @click="showRecolteDropdown = false">
-                                        <div v-if="ruche.couleur" :style="{ backgroundColor: ruche.couleur }"
-                                            class="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0">
-                                        </div>
-                                        <span class="truncate">{{ ruche.nom }}</span>
-                                        <span :class="{
-                                            'text-green-600': ruche.statut === 'active',
-                                            'text-orange-600': ruche.statut === 'inactive',
-                                            'text-red-600': ruche.statut === 'morte'
-                                        }" class="text-xs">
-                                            {{ getStatutDisplay(ruche.statut).replace(/[🚨⚠️✅]/g, '') }}
-                                        </span>
-                                        </Link>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-
-                    <p class="mt-4 text-sm text-gray-500 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
-                        💡 <strong>Actions rapides :</strong> Cliquez sur les boutons colorés pour accéder directement
-                        aux
-                        formulaires de saisie !
-                    </p>
-                </div>
-
-                <!-- État vide -->
-                <div v-if="stats.total_ruchers === 0"
-                    class="text-center py-20 bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-dashed border-blue-300 rounded-xl">
-                    <Building2 class="mx-auto h-16 w-16 text-blue-400 mb-6" />
-                    <h3 class="text-xl font-bold text-blue-900 mb-3">Bienvenue dans BeeNote ! 🐝</h3>
-                    <p class="text-base text-blue-700 mb-8 max-w-md mx-auto">
-                        Commencez votre aventure apicole en créant votre premier rucher. C'est parti !
-                    </p>
-                    <Link :href="route('ruchers.create')"
-                        class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold py-4 px-8 rounded-lg shadow-lg transition-all hover:shadow-xl transform hover:-translate-y-1">
-                    <Plus class="mr-3 h-5 w-5" />
-                    Créer mon premier rucher
+            <section class="rounded-b-hero bg-forest px-5 pb-6 pt-3 text-white lg:hidden">
+                <header class="flex items-center justify-between lg:hidden">
+                    <span class="bn-title text-[22px]">BeeNote</span>
+                    <Link v-if="attente" :href="route('terrain') + '#synchro'" class="flex min-h-[44px] items-center gap-2 rounded-full bg-white/15 px-3.5 text-sm font-semibold">
+                        <span aria-hidden="true" class="h-2 w-2 rounded-full bg-honey" />
+                        {{ attente }} à envoyer
                     </Link>
-                </div>
-
-                <!-- Activité récente avec codes couleur -->
-                <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Ruchers récents -->
-                    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-                            <Building2 class="h-5 w-5 text-blue-600 mr-2" />
-                            Ruchers récents
-                        </h3>
-                        <div class="space-y-4">
-                            <Link v-for="rucher in ruchersRecents" :key="rucher.id"
-                                :href="route('ruchers.show', rucher.id)"
-                                class="block border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-md transition-all group">
-                            <div class="flex items-center justify-between">
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-base font-semibold text-gray-900 truncate group-hover:text-blue-600">
-                                        {{ rucher.nom }}
-                                    </p>
-                                    <p class="text-sm text-gray-600 truncate mt-1">
-                                        📍 {{ rucher.localisation || 'Aucune localisation' }}
-                                    </p>
-                                    <p class="text-xs text-blue-600 font-medium mt-2">
-                                        🐝 {{ rucher.ruches?.length || 0 }} ruche{{ (rucher.ruches?.length || 0) > 1 ?
-                                        's' : ''
-                                        }}
-                                    </p>
-                                </div>
-                                <ArrowRight
-                                    class="h-4 w-4 text-gray-400 group-hover:text-blue-600 flex-shrink-0 ml-3 transition-colors" />
-                            </div>
-                            </Link>
-                        </div>
-                        <div class="mt-6 pt-4 border-t border-gray-200">
-                            <Link :href="route('ruchers.index')"
-                                class="text-sm font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center">
-                            Voir tous les ruchers
-                            <ArrowRight class="h-4 w-4 ml-1" />
-                            </Link>
-                        </div>
+                </header>
+                <div>
+                    <div class="min-w-0">
+                        <p class="mt-4 text-sage">{{ dateFr(aujourdhui) }}</p>
+                        <h1 class="bn-title mt-1 text-4xl leading-[1.05]">{{ titre }}</h1>
+                        <Comb class="mt-3.5" :ruches="priorite.ruches.slice(0, 8)" :size="58" :par-ligne="4" sur-vert />
                     </div>
-
-                    <!-- Ruches récentes avec indicateurs visuels -->
-                    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-                            <Package class="h-5 w-5 text-amber-600 mr-2" />
-                            Ruches récentes
-                        </h3>
-                        <div class="space-y-4">
-                            <Link v-for="ruche in ruchesRecentes" :key="ruche.id"
-                                :href="route('ruchers.ruches.show', [ruche.rucher_id, ruche.id])"
-                                class="block border border-gray-200 rounded-lg p-4 hover:border-amber-400 hover:shadow-md transition-all group">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-4 min-w-0 flex-1">
-                                    <!-- Indicateur couleur ruche -->
-                                    <div v-if="ruche.couleur" :style="{ backgroundColor: ruche.couleur }"
-                                        class="w-4 h-4 rounded-full border-2 border-gray-300 flex-shrink-0 shadow-sm">
-                                    </div>
-                                    <div v-else
-                                        class="w-4 h-4 rounded-full bg-gray-200 border-2 border-gray-300 flex-shrink-0">
-                                    </div>
-
-                                    <div class="min-w-0 flex-1">
-                                        <p
-                                            class="text-base font-semibold text-gray-900 truncate group-hover:text-amber-600">
-                                            {{ ruche.nom }}
-                                        </p>
-                                        <p class="text-sm text-gray-600 truncate mt-1">
-                                            📍 {{ ruche.rucher_nom }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3 flex-shrink-0">
-                                    <!-- Badge statut avec couleurs -->
-                                    <span :class="{
-                                        'bg-green-100 text-green-800 border-green-200': ruche.statut === 'active',
-                                        'bg-orange-100 text-orange-800 border-orange-200': ruche.statut === 'inactive',
-                                        'bg-red-100 text-red-800 border-red-200': ruche.statut === 'morte'
-                                    }" class="text-xs font-bold px-3 py-1 rounded-full border">
-                                        {{ getStatutDisplay(ruche.statut) }}
-                                    </span>
-                                    <ArrowRight
-                                        class="h-4 w-4 text-gray-400 group-hover:text-amber-600 transition-colors" />
-                                </div>
-                            </div>
-                            </Link>
-                        </div>
+                    <div class="mt-4">
+                        <Link :href="route('terrain', { rucher: priorite.id })" class="bn-btn-flat">Visiter le rucher</Link>
                     </div>
                 </div>
+            </section>
+
+            <Link v-if="!voixPrete" :href="route('demarrage')" class="mx-5 mt-3 flex min-h-[44px] items-center gap-2 font-semibold text-rust lg:mx-0">
+                <Icon nom="suite" :size="20" />
+                Préparer le téléphone pour le rucher
+            </Link>
+            <Link v-else :href="route('demarrage')" class="mx-5 mt-3 flex min-h-[44px] items-center gap-2 font-semibold text-mint-ink lg:hidden">
+                <Icon nom="coche" :size="20" />
+                Prêt pour le rucher : voix disponible
+            </Link>
+
+            <section aria-label="Frise de la saison" class="bn-card hidden p-5 lg:block">
+                <ol class="grid grid-cols-12 gap-1.5">
+                    <li v-for="(mois, index) in MOIS" :key="mois" class="min-h-[112px] rounded-xl p-2 text-sm" :class="index + 1 === moisCourant ? 'bg-forest text-white' : 'bg-ground'">
+                        <span class="block font-semibold">{{ mois }}</span>
+                        <span v-if="saison?.[index + 1]" class="mt-1 block">{{ saison[index + 1] }} {{ saison[index + 1] > 1 ? 'visites' : 'visite' }}</span>
+                    </li>
+                </ol>
+            </section>
+
+            <div class="lg:grid lg:grid-cols-2 lg:gap-6">
+                <section class="px-4 pt-2 lg:bn-card lg:p-5">
+                    <div class="mb-2 ml-1 flex items-center justify-between lg:ml-0">
+                        <h2 class="bn-title text-[22px]">À faire</h2>
+                        <Link :href="route('taches.create')" class="flex min-h-[44px] items-center px-1 font-semibold text-forest">Ajouter</Link>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <Link v-for="item in aCompleter" :key="item.visite_id" :href="route('noter.create', { type: 'traitement', ruche: item.ruche_id, visite: item.visite_id })" class="flex min-h-[64px] items-center justify-between gap-2 rounded-card bg-cream px-4 py-2">
+                            <span>
+                                <span class="block font-semibold">Compléter le traitement</span>
+                                <span class="block text-sm text-cream-ink">{{ item.ruche }} · {{ dateCourte(item.date) }}</span>
+                            </span>
+                            <Icon nom="suite" :size="20" />
+                        </Link>
+
+                        <div v-for="tache in taches" :key="tache.id" class="bn-card flex min-h-[64px] items-center gap-2 py-1 pl-1 pr-3.5 lg:bg-ground lg:shadow-none">
+                            <button type="button" class="flex h-14 w-14 flex-none items-center justify-center" :aria-label="`Marquer comme fait : ${tache.titre}`" @click="cocher(tache)">
+                                <span class="block h-[30px] w-[30px] rounded-[10px] border-2 border-line bg-white" />
+                            </button>
+                            <component :is="tache.ruche_id ? Link : 'span'" :href="tache.ruche_id ? route('ruches.show', tache.ruche_id) : undefined" class="min-w-0 flex-1">
+                                <span class="block font-semibold">{{ tache.titre }}</span>
+                                <span class="block text-sm text-muted">{{ tache.ou }}</span>
+                            </component>
+                            <span class="bn-badge" :class="tache.retard ? 'bg-peach text-rust' : 'bg-soft text-muted'">{{ tache.retard ? 'En retard' : dateCourte(tache.date_prevue) }}</span>
+                        </div>
+
+                        <p v-if="!taches.length && !aCompleter.length" class="px-1 text-muted">Rien à faire pour l'instant.</p>
+                    </div>
+                </section>
+
+                <section class="hidden lg:block lg:bn-card lg:p-5">
+                    <h2 class="bn-title mb-3 text-[22px]">Vos ruchers</h2>
+                    <div class="flex flex-col gap-4">
+                        <Link v-for="rucher in ruchers" :key="rucher.id" :href="route('ruchers.show', rucher.id)" class="block rounded-2xl bg-ground p-3.5 hover:brightness-[.98]">
+                            <span class="flex justify-between gap-2 font-semibold">
+                                {{ rucher.nom }}
+                                <span class="text-sm font-normal text-muted">{{ rucher.ruches.length }} ruches</span>
+                            </span>
+                            <Comb class="mt-2.5" :ruches="rucher.ruches" :size="44" :par-ligne="8" />
+                        </Link>
+                    </div>
+                </section>
             </div>
         </div>
     </AppLayout>
 </template>
-
-<script setup>
-import AppLayout from '@/Layouts/AppLayout.vue';
-import { Link } from '@inertiajs/vue3';
-import {
-    Building2, Package, CheckCircle, AlertCircle, AlertTriangle, Plus, ArrowRight,
-    ChevronDown, Zap, Calendar, Pill, Droplets
-} from 'lucide-vue-next';
-import { ref, computed } from 'vue';
-
-// Props du contrôleur
-const props = defineProps({
-    stats: Object,
-    ruchersRecents: Array,
-    ruchesRecentes: Array
-});
-
-// État des dropdowns
-const showRuchersDropdown = ref(false);
-const showVisiteDropdown = ref(false);
-const showTraitementDropdown = ref(false);
-const showRecolteDropdown = ref(false);
-
-// Ruchers avec comptage de ruches
-const availableRuchers = computed(() => {
-    return props.ruchersRecents.map(rucher => ({
-        ...rucher,
-        ruches_count: rucher.ruches?.length || 0
-    })).filter(rucher => rucher.ruches_count > 0);
-});
-
-// Fermer dropdowns quand on clique ailleurs
-function closeDropdown(event) {
-    if (!event.target.closest('.relative')) {
-        showRuchersDropdown.value = false;
-        showVisiteDropdown.value = false;
-        showTraitementDropdown.value = false;
-        showRecolteDropdown.value = false;
-    }
-}
-
-// Écouter les clics globaux
-if (typeof window !== 'undefined') {
-    document.addEventListener('click', closeDropdown);
-}
-
-// Helper pour les statuts avec emojis
-function getStatutDisplay(statut) {
-    const displays = {
-        'active': '✅ Active',
-        'inactive': '⚠️ Inactive',
-        'morte': '🚨 Morte'
-    };
-    return displays[statut] || statut;
-}
-</script>

@@ -2,13 +2,10 @@
 
 use App\Models\User;
 
-test('teams can be created', function () {
+test('teams cannot be created while each account keeps its personal team', function () {
     $this->actingAs($user = User::factory()->withPersonalTeam()->create());
 
-    $this->post('/teams', [
-        'name' => 'Test Team',
-    ]);
+    $this->post('/teams', ['name' => 'Test Team'])->assertForbidden();
 
-    expect($user->fresh()->ownedTeams)->toHaveCount(2);
-    expect($user->fresh()->ownedTeams()->latest('id')->first()->name)->toEqual('Test Team');
+    expect($user->fresh()->ownedTeams)->toHaveCount(1);
 });

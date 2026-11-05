@@ -2,25 +2,33 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GardeLeRucher;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Traitement extends Model
 {
     /** @use HasFactory<\Database\Factories\TraitementFactory> */
-    use HasFactory;
+    use GardeLeRucher, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'date_traitement',
         'type_traitement',
         'produit_utilise',
         'dosage',
+        'numero_lot',
         'methode_application',
         'temperature_application',
         'efficacite',
         'effets_secondaires',
         'notes',
     ];
+
+    protected function casts(): array
+    {
+        return ['date_traitement' => 'date:Y-m-d'];
+    }
 
     public function user()
     {

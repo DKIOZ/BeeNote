@@ -2,19 +2,47 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
+use App\Models\Tache;
+use App\Models\Visite;
+use App\Services\RucherOverview;
 use Illuminate\Http\Request;
-use App\Services\RucherService;
-use App\Services\DashboardService;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        $user = $request->user();
+        $today = now()->toDateString();
+
+        $taches = Tache::where('team_id', $user->current_team_id)
+            ->where('statut', 'a_faire')
+            // Une ruche à la corbeille n'a plus de page : sa tâche attend avec elle.
+            ->whereHas('rucher')
+            ->where(fn ($q) => $q->whereNull('ruche_id')->orWhereHas('ruche'))
+            ->with(['ruche:id,nom', 'rucher:id,nom'])
+            ->orderBy('date_prevue')
+            ->limit(20)
+            ->get()
+            ->map(fn (Tache $tache) => [
+                'id' => $tache->id,
+                'titre' => $tache->titre,
+                'ou' => $tache->ruche?->nom ?? $tache->rucher?->nom,
+                'ruche_id' => $tache->ruche_id,
+                'date_prevue' => $tache->date_prevue->toDateString(),
+                'retard' => $tache->date_prevue->toDateString() < $today,
+            ]);
+
         return Inertia::render('Dashboard', [
-            'stats' => DashboardService::getStats($request->user()),
-            'ruchersRecents' => DashboardService::getRecentRuchers($request->user()),
-            'ruchesRecentes' => DashboardService::getRecentRuches($request->user()),
+            'ruchers' => RucherOverview::ruchers($user),
+            'taches' => $taches,
+            'aCompleter' => RucherOverview::aCompleter($user),
+            'saison' => Visite::where('team_id', $user->current_team_id)
+                ->whereYear('date_visite', now()->year)
+                ->whereHas('ruche')
+                ->pluck('date_visite')
+                ->countBy(fn ($date) => $date->month),
+            'aujourdhui' => $today,
         ]);
     }
 }

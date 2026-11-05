@@ -2,193 +2,107 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
 use App\Models\Ruche;
 use App\Models\Rucher;
 use App\Models\Visite;
+use App\Services\WeatherService;
+use App\Support\VisiteFields;
 use Illuminate\Http\Request;
-use App\Services\VisiteService;
-use App\Http\Requests\StoreVisiteRequest;
-use App\Http\Requests\UpdateVisiteRequest;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class VisiteController extends Controller
 {
-    use AuthorizesRequests;
-
-    public function index(Rucher $rucher, Ruche $ruche)
-    {
-        $this->authorize('view', $rucher);
-
-        // Vérifier que la ruche appartient au rucher
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
-
-        // Récupérer les visites via le service
-        $visites = VisiteService::getVisitesForRuche($ruche, request()->user());
-
-        return Inertia::render('Visites/Index', [
-            'rucher' => $rucher,
-            'ruche' => $ruche,
-            'visites' => $visites
-        ]);
-    }
-
     /**
-     * Show the form for creating a new resource.
+     * Saisie d'une visite après coup, depuis le PC ou le téléphone.
      */
-    public function create(Rucher $rucher, Ruche $ruche)
+    public function create(Request $request)
     {
-        $this->authorize('view', $rucher);
-
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
-
-        // Préparer les données du formulaire (pré-remplissage intelligent)
-        $formData = VisiteService::prepareFormData($ruche, request()->user());
-
         return Inertia::render('Visites/Create', [
-            'rucher' => $rucher,
-            'ruche' => $ruche,
-            'formData' => $formData
+            'ruchers' => $this->ruchesParRucher($request),
+            'rucheId' => $request->integer('ruche') ?: null,
+            'aujourdhui' => now()->toDateString(),
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreVisiteRequest $request, Rucher $rucher, Ruche $ruche)
+    public function store(Request $request)
     {
-        $this->authorize('view', $rucher);
+        $data = $request->validate([...VisiteFields::rules(), 'ruche_id' => ['required', 'integer']]);
+        $ruche = Ruche::findOrFail($data['ruche_id']);
+        $this->authorizeRuche($ruche, 'update');
 
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
+        $visite = new Visite(VisiteFields::clean($data));
+        $visite->ruche_id = $ruche->id;
+        $visite->user_id = $request->user()->id;
+        $visite->team_id = $request->user()->current_team_id;
+        $visite->save();
 
-        // Créer la visite via le service
-        $visite = VisiteService::createForRuche(
-            $request->validated(),
-            $ruche,
-            $request->user()
-        );
+        dispatch(fn () => WeatherService::completeVisite($visite))->afterResponse();
 
-        return redirect()->route('ruchers.ruches.visites.show', [$rucher->id, $ruche->id, $visite->id])
-            ->with('message', 'Visite enregistrée avec succès !');
+        return redirect()->route('ruches.show', $ruche)->with('message', 'Visite enregistrée.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Rucher $rucher, Ruche $ruche, Visite $visite)
+    public function show(Request $request, Visite $visite)
     {
-        $this->authorize('view', $rucher);
-
-        // Vérifications de cohérence
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
-
-        if ($visite->ruche_id !== $ruche->id) {
-            abort(404, 'Visite non trouvée pour cette ruche');
-        }
-
-        if ($visite->team_id !== request()->user()->current_team_id) {
-            abort(403, 'Accès refusé à cette visite');
-        }
+        $this->authorizeVisite($visite);
+        $visite->load('ruche.rucher:id,nom,team_id');
 
         return Inertia::render('Visites/Show', [
-            'rucher' => $rucher,
-            'ruche' => $ruche,
-            'visite' => $visite
-        ]);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Rucher $rucher, Ruche $ruche, Visite $visite)
-    {
-        $this->authorize('view', $rucher);
-
-        // Vérifications de cohérence
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
-
-        if ($visite->ruche_id !== $ruche->id) {
-            abort(404, 'Visite non trouvée pour cette ruche');
-        }
-
-        if ($visite->team_id !== request()->user()->current_team_id) {
-            abort(403, 'Accès refusé à cette visite');
-        }
-
-        $formData = VisiteService::prepareEditData($visite, request()->user());
-
-        return Inertia::render('Visites/Edit', [
-            'rucher' => $rucher,
-            'ruche' => $ruche,
             'visite' => $visite,
-            'formData' => $formData  // ← Ajouter ceci
+            'ruchers' => $this->ruchesParRucher($request),
+            'modifiee' => $visite->updated_at->gt($visite->created_at->addMinute()) ? $visite->updated_at->toDateString() : null,
+            'peutSupprimer' => $request->user()->can('delete', $visite->ruche->rucher),
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateVisiteRequest $request, Rucher $rucher, Ruche $ruche, Visite $visite)
+    public function update(Request $request, Visite $visite)
     {
-        // Vérifier l'accès au rucher
-        $this->authorize('view', $rucher);
+        $this->authorizeVisite($visite, 'update');
 
-        // Vérifications de cohérence
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
+        $data = $request->validate([...VisiteFields::rules(), 'ruche_id' => ['required', 'integer']]);
+        $ruche = Ruche::findOrFail($data['ruche_id']);
+        $this->authorizeRuche($ruche, 'update');
 
-        if ($visite->ruche_id !== $ruche->id) {
-            abort(404, 'Visite non trouvée pour cette ruche');
-        }
+        $visite->fill(VisiteFields::clean($data));
+        $visite->ruche_id = $ruche->id;
+        $visite->save();
 
-        if ($visite->team_id !== $request->user()->current_team_id) {
-            abort(403, 'Accès refusé à cette visite');
-        }
-
-        // Mettre à jour via le service
-        $visite = VisiteService::updateForRuche($visite, $request->validated(), $request->user());
-
-        return redirect()->route('ruchers.ruches.visites.show', [$rucher->id, $ruche->id, $visite->id])
-            ->with('message', 'Visite modifiée avec succès !');
+        return redirect()->route('ruches.show', $ruche)->with('message', 'Visite corrigée.');
     }
 
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Rucher $rucher, Ruche $ruche, Visite $visite)
+    public function destroy(Visite $visite)
     {
-        // Vérifier l'accès au rucher
-        $this->authorize('view', $rucher);
+        $this->authorizeVisite($visite, 'delete');
+        $rucheId = $visite->ruche_id;
+        $visite->delete();
 
-        // Vérifications de cohérence
-        if ($ruche->rucher_id !== $rucher->id) {
-            abort(404, 'Ruche non trouvée dans ce rucher');
-        }
+        return redirect()->route('ruches.show', $rucheId)->with('message', 'Visite mise à la corbeille.');
+    }
 
-        if ($visite->ruche_id !== $ruche->id) {
-            abort(404, 'Visite non trouvée pour cette ruche');
-        }
+    public function note(Visite $visite)
+    {
+        $this->authorizeVisite($visite);
+        abort_unless($visite->note_audio_path && Storage::disk('local')->exists($visite->note_audio_path), 404);
 
-        if ($visite->team_id !== request()->user()->current_team_id) {
-            abort(403, 'Accès refusé à cette visite');
-        }
+        return response()->file(Storage::disk('local')->path($visite->note_audio_path), [
+            'Content-Disposition' => 'inline; filename="note.audio"',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
 
-        // Supprimer via le service
-        VisiteService::deleteForRuche($visite, request()->user());
+    private function authorizeVisite(Visite $visite, string $ability = 'view'): void
+    {
+        abort_unless($visite->ruche, 404);
+        abort_unless($visite->team_id === request()->user()->current_team_id, 403);
+        $this->authorizeRuche($visite->ruche, $ability);
+    }
 
-        return redirect()->route('ruchers.ruches.visites.index', [$rucher->id, $ruche->id])
-            ->with('message', 'Visite supprimée avec succès !');
+    private function ruchesParRucher(Request $request)
+    {
+        return Rucher::where('team_id', $request->user()->current_team_id)
+            ->with(['ruches' => fn ($q) => $q->orderBy('id')->select('id', 'nom', 'rucher_id')])
+            ->orderBy('nom')
+            ->get(['id', 'nom']);
     }
 }

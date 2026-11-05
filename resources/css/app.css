@@ -1,7 +1,97 @@
+@import '@fontsource/figtree/400.css';
+@import '@fontsource/figtree/600.css';
+@import '@fontsource/figtree/700.css';
+@import '@fontsource-variable/bricolage-grotesque/index.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-[x-cloak] {
-    display: none;
+@layer base {
+    body {
+        @apply bg-ground text-ink;
+    }
+
+    a,
+    button {
+        transition: transform 0.09s ease, box-shadow 0.09s ease, background-color 0.2s ease;
+    }
+
+    a:active,
+    button:active {
+        transform: translateY(2px) scale(0.98);
+    }
+
+    /* Le jaune n'est lisible que sur le vert : ailleurs, le contour est vert foncé. */
+    :focus-visible {
+        outline: 3px solid #17382c;
+        outline-offset: 2px;
+    }
+
+    aside :focus-visible,
+    .bg-forest :focus-visible,
+    .bg-forest-deep :focus-visible {
+        outline-color: #ffb81c;
+    }
+
+    button:disabled {
+        cursor: not-allowed;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        ::before,
+        ::after {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
+}
+
+@layer components {
+    .bn-title {
+        @apply font-display font-bold tracking-tight;
+    }
+
+    .bn-btn {
+        @apply inline-flex min-h-[60px] w-full items-center justify-center rounded-[18px] bg-honey px-4 text-center text-lg font-bold text-forest shadow-cta lg:min-h-[48px] lg:w-auto lg:rounded-[14px] lg:text-base lg:hover:brightness-95;
+    }
+
+    .bn-btn-flat {
+        @apply inline-flex min-h-[60px] w-full items-center justify-center rounded-[18px] bg-honey px-4 text-center text-lg font-bold text-forest lg:min-h-[48px] lg:w-auto lg:rounded-[14px] lg:text-base;
+    }
+
+    .bn-btn-2 {
+        @apply inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-[1.5px] border-line bg-white px-4 text-center font-semibold text-forest lg:min-h-[48px] lg:w-auto lg:rounded-xl lg:hover:bg-ground;
+    }
+
+    .bn-btn:disabled,
+    .bn-btn-flat:disabled,
+    .bn-btn-2:disabled {
+        @apply border-transparent bg-soft text-muted shadow-none;
+    }
+
+    .bn-btn-danger {
+        @apply inline-flex min-h-[48px] w-full items-center justify-center bg-transparent font-bold text-rust lg:w-auto lg:hover:underline;
+    }
+
+    .bn-card {
+        @apply rounded-card bg-white shadow-card;
+    }
+
+    .bn-label {
+        @apply mb-1.5 block text-sm font-semibold text-muted;
+    }
+
+    .bn-input {
+        @apply block min-h-[56px] w-full rounded-2xl border-[1.5px] border-line bg-white px-4 text-lg text-ink focus:border-forest focus:ring-honey lg:min-h-[48px] lg:rounded-xl lg:text-base;
+    }
+
+    .bn-badge {
+        @apply inline-flex flex-none items-center rounded-xl px-2.5 py-1 text-sm font-bold;
+    }
+
+    .bn-sub {
+        @apply text-sm text-muted;
+    }
 }

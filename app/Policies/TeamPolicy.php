@@ -31,7 +31,8 @@ class TeamPolicy
      */
     public function create(User $user): bool
     {
-        return true;
+        // Chaque compte garde sa seule équipe personnelle tant que le partage n'existe pas.
+        return false;
     }
 
     /**
@@ -47,7 +48,7 @@ class TeamPolicy
      */
     public function addTeamMember(User $user, Team $team): bool
     {
-        return $user->ownsTeam($team);
+        return false;
     }
 
     /**
@@ -55,7 +56,7 @@ class TeamPolicy
      */
     public function updateTeamMember(User $user, Team $team): bool
     {
-        return $user->ownsTeam($team);
+        return false;
     }
 
     /**

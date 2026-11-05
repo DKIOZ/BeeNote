@@ -3,42 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Rucher;
+use App\Services\RucherOverview;
 use Illuminate\Http\Request;
-use App\Services\RucherService;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Requests\StoreRucherRequest;
-use Inertia\Inertia;  // ✅ Import Inertia
-use App\Http\Requests\UpdateRucherRequest;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class RucherController extends Controller
 {
-    use AuthorizesRequests;
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', Rucher::class);
 
-        $ruchers = RucherService::getRuchersForTeam(request()->user())
-            ->map(function ($rucher) {
-                $rucher->ruches_count = $rucher->ruches->count();
-                $rucher->ruches_actives_count = $rucher->ruches->where('statut', 'active')->count();
-                $rucher->visites_count = $rucher->ruches->sum(fn($ruche) => $ruche->visites->count());
-                $rucher->derniere_visite = $rucher->ruches->flatMap->visites->max('date_visite');
-
-                return $rucher;
-            });
-
-        return Inertia::render('Ruchers/Index', [
-            'ruchers' => $ruchers
-        ]);
+        return Inertia::render('Ruchers/Index', ['ruchers' => RucherOverview::ruchers($request->user())]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         $this->authorize('create', Rucher::class);
@@ -46,73 +24,79 @@ class RucherController extends Controller
         return Inertia::render('Ruchers/Create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreRucherRequest  $request)
+    public function store(Request $request)
     {
         $this->authorize('create', Rucher::class);
 
-        RucherService::createForTeam(
-            $request->validated(),
-            $request->user()
-        );
+        $data = $request->validate([
+            ...$this->rules(),
+            'nombre_ruches' => ['required', 'integer', 'min:0', 'max:50'],
+        ]);
 
-        return redirect()->route('ruchers.index')
-            ->with('message', 'Rucher créé avec succès !');
+        $rucher = DB::transaction(function () use ($data, $request) {
+            $rucher = new Rucher($data);
+            $rucher->team_id = $request->user()->current_team_id;
+            $rucher->save();
+
+            for ($i = 1; $i <= $data['nombre_ruches']; $i++) {
+                $rucher->ruches()->create(['nom' => "Ruche {$i}"]);
+            }
+
+            return $rucher;
+        });
+
+        return redirect()->route('ruchers.show', $rucher)->with('message', 'Rucher créé.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Rucher $rucher)
+    public function show(Request $request, Rucher $rucher)
     {
         $this->authorize('view', $rucher);
 
-        // Charger les ruches du rucher
-        $ruches = $rucher->ruches;
-
         return Inertia::render('Ruchers/Show', [
-            'rucher' => $rucher,
-            'ruches' => $ruches  // ✅ Passer les ruches
+            'rucher' => RucherOverview::ruchers($request->user())->firstWhere('id', $rucher->id),
+            'peutSupprimer' => $request->user()->can('delete', $rucher),
         ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Rucher $rucher)
+    public function edit(Request $request, Rucher $rucher)
     {
         $this->authorize('update', $rucher);
 
         return Inertia::render('Ruchers/Edit', [
-            'rucher' => $rucher
+            'rucher' => $rucher->only(['id', 'nom', 'localisation', 'latitude', 'longitude', 'description']),
+            'peutSupprimer' => $request->user()->can('delete', $rucher),
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateRucherRequest $request, Rucher $rucher)
+    public function update(Request $request, Rucher $rucher)
     {
         $this->authorize('update', $rucher);
+        $rucher->update($request->validate($this->rules()));
 
-        $rucher = RucherService::updateForTeam($rucher, $request->validated(), $request->user());
-
-        return redirect()->route('ruchers.show', $rucher)
-            ->with('message', 'Rucher modifié avec succès !');
+        return redirect()->route('ruchers.show', $rucher)->with('message', 'Rucher enregistré.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Rucher $rucher)
     {
         $this->authorize('delete', $rucher);
 
-        RucherService::deleteForTeam($rucher, request()->user());
+        DB::transaction(function () use ($rucher) {
+            // Ses ruches partent avec lui et reviendront avec lui, à la même heure.
+            $rucher->delete();
+            $rucher->ruches()->update(['deleted_at' => $rucher->deleted_at]);
+        });
 
-        return redirect()->route('ruchers.index')
-            ->with('message', 'Rucher supprimé avec succès !');
+        return redirect()->route('ruchers.index')->with('message', 'Rucher mis à la corbeille.');
+    }
+
+    private function rules(): array
+    {
+        return [
+            'nom' => ['required', 'string', 'max:100'],
+            'localisation' => ['nullable', 'string', 'max:255'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'description' => ['nullable', 'string', 'max:1000'],
+        ];
     }
 }

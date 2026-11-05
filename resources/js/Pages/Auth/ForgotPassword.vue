@@ -1,61 +1,26 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import { Link, useForm } from '@inertiajs/vue3';
+import AuthShell from '@/Components/AuthShell.vue';
+import Field from '@/Components/Field.vue';
 
-defineProps({
-    status: String,
-});
+defineProps({ status: String });
 
-const form = useForm({
-    email: '',
-});
-
-const submit = () => {
-    form.post(route('password.email'));
-};
+const form = useForm({ email: '' });
 </script>
 
 <template>
-    <Head title="Forgot Password" />
-
-    <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo />
-        </template>
-
-        <div class="mb-4 text-sm text-gray-600">
-            Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.
+    <AuthShell titre="Mot de passe oublié">
+        <div v-if="status" role="status" class="rounded-card bg-mint p-4">
+            <p class="text-lg font-bold text-mint-ink">C'est envoyé</p>
+            <p class="mb-3 mt-1">{{ status }} Regardez aussi vos indésirables.</p>
+            <Link :href="route('login')" class="bn-btn-2">Retour à la connexion</Link>
         </div>
 
-        <div v-if="status" class="mb-4 font-medium text-sm text-green-600">
-            {{ status }}
-        </div>
-
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
-                <TextInput
-                    id="email"
-                    v-model="form.email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="flex items-center justify-end mt-4">
-                <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Email Password Reset Link
-                </PrimaryButton>
-            </div>
+        <form v-else class="flex flex-col gap-3.5" @submit.prevent="form.post(route('password.email'))">
+            <p class="text-lg text-muted">Indiquez votre e-mail : nous vous enverrons un lien pour en choisir un nouveau.</p>
+            <Field id="email" v-model="form.email" type="email" label="E-mail" autocomplete="username" :erreur="form.errors.email" required />
+            <button type="submit" class="bn-btn lg:w-full" :disabled="form.processing">Recevoir le lien</button>
+            <Link :href="route('login')" class="flex min-h-[48px] items-center justify-center font-semibold text-forest">Retour à la connexion</Link>
         </form>
-    </AuthenticationCard>
+    </AuthShell>
 </template>

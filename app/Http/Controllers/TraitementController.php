@@ -169,7 +169,7 @@ class TraitementController extends Controller
     public function destroy(Rucher $rucher, Ruche $ruche, Traitement $traitement)
     {
         // Vérifier l'accès au rucher
-        $this->authorize('view', $rucher);
+        $this->authorize('delete', $rucher);
 
         // Vérifications de cohérence
         if ($ruche->rucher_id !== $rucher->id) {

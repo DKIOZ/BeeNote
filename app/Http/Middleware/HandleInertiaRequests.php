@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -35,9 +36,19 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        // L'historique du navigateur reste illisible une fois la clé effacée à la déconnexion.
+        Inertia::encryptHistory();
+
+        // Lire l'équipe courante la fixe pour un compte neuf, avant tout contrôle de droits.
+        $request->user()?->currentTeam;
+
         return [
             ...parent::share($request),
-            //
+            'flash' => [
+                'message' => fn () => $request->session()->get('message'),
+                'erreur' => fn () => $request->session()->get('erreur'),
+            ],
+            'voiceModelUrl' => config('beenote.voice_model_url'),
         ];
     }
 }

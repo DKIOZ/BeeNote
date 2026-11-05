@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Team;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,7 +18,8 @@ class RucherFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'nom' => 'Rucher '.fake()->unique()->word(),
+            'team_id' => Team::factory(),
         ];
     }
 }

@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GardeLeRucher;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Recolte extends Model
 {
     /** @use HasFactory<\Database\Factories\RecolteFactory> */
-    use HasFactory;
+    use GardeLeRucher, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'date_recolte',
@@ -20,6 +22,11 @@ class Recolte extends Model
         'notes_qualite',
         'notes_degustation',
     ];
+
+    protected function casts(): array
+    {
+        return ['date_recolte' => 'date:Y-m-d'];
+    }
 
     public function user()
     {

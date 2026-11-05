@@ -2,118 +2,74 @@
 
 namespace App\Services;
 
+use App\Models\Visite;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class WeatherService
 {
     /**
-     * Récupérer les données météo pour une position géographique
-     * Utilise l'API OpenWeatherMap One Call (gratuite)
+     * Ajoute après coup la météo à une visite, d'après sa date et la position du rucher.
+     * Une visite notée sans réseau n'a pas pu la récupérer au rucher.
      */
-    public static function getCurrentWeather(float $latitude, float $longitude): ?array
+    public static function completeVisite(Visite $visite): void
     {
+        $rucher = $visite->ruche?->rucher;
+
+        if (! $rucher || $rucher->latitude === null || $rucher->longitude === null || $visite->meteo !== null) {
+            return;
+        }
+
+        $date = $visite->date_visite->toDateString();
+        // Sans heure notée, le milieu de journée reste le plus représentatif d'une visite.
+        $hour = $visite->heure_debut ? (int) substr((string) $visite->heure_debut, 0, 2) : 12;
+
         try {
-            // API gratuite open-meteo.com (pas besoin de clé)
-            $response = Http::timeout(10)->get('https://api.open-meteo.com/v1/forecast', [
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'current' => 'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code',
+            $response = Http::timeout(5)->get('https://api.open-meteo.com/v1/forecast', [
+                'latitude' => (float) $rucher->latitude,
+                'longitude' => (float) $rucher->longitude,
+                'hourly' => 'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code',
                 'timezone' => 'Europe/Paris',
-                'forecast_days' => 1
+                'start_date' => $date,
+                'end_date' => $date,
             ]);
 
-            if (!$response->successful()) {
-                Log::warning('Erreur API météo', ['status' => $response->status()]);
-                return null;
+            $hourly = $response->successful() ? $response->json('hourly') : null;
+
+            if (! isset($hourly['temperature_2m'][$hour], $hourly['weather_code'][$hour])) {
+                return;
             }
 
-            $data = $response->json();
-            
-            if (!isset($data['current'])) {
-                return null;
-            }
-
-            $current = $data['current'];
-            
-            return [
-                'temperature' => round($current['temperature_2m'], 1),
-                'humidity' => $current['relative_humidity_2m'],
-                'wind_speed' => $current['wind_speed_10m'], // km/h
-                'weather_code' => $current['weather_code'],
-                'meteo' => self::mapWeatherCode($current['weather_code']),
-                'force_vent' => self::mapWindSpeed($current['wind_speed_10m']),
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Erreur récupération météo', [
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'error' => $e->getMessage()
-            ]);
-            return null;
+            $visite->forceFill([
+                'temperature' => round((float) $hourly['temperature_2m'][$hour], 1),
+                'humidite' => (int) ($hourly['relative_humidity_2m'][$hour] ?? 0),
+                'force_vent' => self::mapWindSpeed((float) ($hourly['wind_speed_10m'][$hour] ?? 0)),
+                'meteo' => self::mapWeatherCode((int) $hourly['weather_code'][$hour]),
+            ])->saveQuietly();
+        } catch (\Throwable $e) {
+            // La météo est un bonus : son absence ne doit jamais faire échouer un envoi.
+            Log::warning('Météo indisponible', ['visite' => $visite->id, 'erreur' => $e->getMessage()]);
         }
     }
 
-    /**
-     * Convertir le code météo en valeur de notre ENUM
-     * Codes météo open-meteo.com
-     */
     private static function mapWeatherCode(int $code): string
     {
-        // Codes météo WMO standardisés
-        if ($code <= 3) {
-            return 'ensoleille'; // Clear sky, mainly clear, partly cloudy
-        }
-        
-        if ($code <= 48) {
-            return 'nuageux'; // Overcast, fog
-        }
-        
-        if ($code <= 67) {
-            return 'pluvieux'; // Rain
-        }
-        
-        if ($code <= 82) {
-            return 'pluvieux'; // Rain showers
-        }
-        
-        if ($code >= 95) {
-            return 'orageux'; // Thunderstorm
-        }
-        
-        return 'nuageux'; // Par défaut
+        return match (true) {
+            $code <= 3 => 'ensoleille',
+            $code <= 48 => 'nuageux',
+            $code >= 95 => 'orageux',
+            $code <= 82 => 'pluvieux',
+            default => 'nuageux',
+        };
     }
 
-    /**
-     * Convertir la vitesse du vent en valeur de notre ENUM
-     */
     private static function mapWindSpeed(float $windSpeedKmh): string
     {
-        if ($windSpeedKmh < 5) {
-            return 'nul';
-        }
-        
-        if ($windSpeedKmh < 20) {
-            return 'faible';
-        }
-        
-        if ($windSpeedKmh < 40) {
-            return 'modere';
-        }
-        
-        return 'fort';
-    }
-
-    /**
-     * Récupérer la météo pour un rucher spécifique
-     */
-    public static function getWeatherForRucher(\App\Models\Rucher $rucher): ?array
-    {
-        if (!$rucher->latitude || !$rucher->longitude) {
-            return null;
-        }
-
-        return self::getCurrentWeather($rucher->latitude, $rucher->longitude);
+        return match (true) {
+            $windSpeedKmh < 5 => 'nul',
+            $windSpeedKmh < 20 => 'faible',
+            $windSpeedKmh < 40 => 'modere',
+            default => 'fort',
+        };
     }
 }
