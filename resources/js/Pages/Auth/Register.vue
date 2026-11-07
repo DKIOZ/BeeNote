@@ -7,7 +7,8 @@ const form = useForm({ name: '', email: '', password: '', password_confirmation:
 
 const envoyer = () => {
     form.password_confirmation = form.password;
-    form.post(route('register'), { onFinish: () => form.reset('password', 'password_confirmation') });
+    // Le mot de passe reste en place après une erreur : on ne fait pas tout retaper.
+    form.post(route('register'), { onSuccess: () => form.reset('password', 'password_confirmation') });
 };
 </script>
 
@@ -16,10 +17,10 @@ const envoyer = () => {
         <form class="flex flex-col gap-3.5" novalidate @submit.prevent="envoyer">
             <Field id="name" v-model="form.name" label="Nom" autocomplete="name" :erreur="form.errors.name" required />
             <Field id="email" v-model="form.email" type="email" label="E-mail" autocomplete="username" :erreur="form.errors.email" required />
-            <Field id="password" v-model="form.password" type="password" label="Mot de passe" autocomplete="new-password" :erreur="form.errors.password" required />
+            <Field id="password" v-model="form.password" type="password" label="Mot de passe, 8 caractères ou plus" autocomplete="new-password" :erreur="form.errors.password" required />
 
             <label class="flex min-h-[44px] cursor-pointer items-start gap-3 py-2">
-                <input v-model="form.terms" type="checkbox" class="mt-0.5 h-7 w-7 flex-none rounded-lg border-line text-forest focus:ring-honey" required>
+                <input v-model="form.terms" type="checkbox" aria-label="J'accepte les conditions et la politique de confidentialité" class="mt-0.5 h-7 w-7 flex-none rounded-lg border-line text-forest focus:ring-honey" required>
                 <span>J'accepte les <Link :href="route('terms.show')" class="inline-block py-2 font-bold underline">conditions</Link> et la <Link :href="route('policy.show')" class="inline-block py-2 font-bold underline">politique de confidentialité</Link>.</span>
             </label>
             <p v-if="form.errors.terms" class="text-sm font-semibold text-rust">{{ form.errors.terms }}</p>

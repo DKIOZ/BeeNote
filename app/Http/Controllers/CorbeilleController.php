@@ -62,14 +62,24 @@ class CorbeilleController extends Controller
             $rucher = Rucher::onlyTrashed()->where('team_id', $teamId)->findOrFail($id);
             $this->authorizeRestauration($request, $rucher);
 
-            DB::transaction(function () use ($rucher) {
-                $supprimeLe = $rucher->deleted_at;
+            $ruches = Ruche::onlyTrashed()->where('rucher_id', $rucher->id)->where('deleted_at', $rucher->deleted_at)->get();
+            if ($doublon = $ruches->first(fn ($ruche) => $this->dejaPrise($ruche, $teamId))) {
+                return back()->with('erreur', "« {$doublon->nom} » existe déjà dans vos ruchers. Renommez l'autre ruche, puis remettez ce rucher.");
+            }
+
+            DB::transaction(function () use ($rucher, $ruches) {
                 $rucher->restore();
-                Ruche::onlyTrashed()->where('rucher_id', $rucher->id)->where('deleted_at', $supprimeLe)->restore();
+                $ruches->each->restore();
             });
         } elseif ($type === 'ruche') {
             $ruche = Ruche::onlyTrashed()->whereHas('rucher', fn ($q) => $q->where('team_id', $teamId))->findOrFail($id);
             $this->authorizeRestauration($request, $ruche->rucher);
+
+            // Le nom et le numéro ont pu être repris pendant que la ruche était à la corbeille.
+            if ($this->dejaPrise($ruche, $teamId)) {
+                return back()->with('erreur', "Une autre ruche s'appelle déjà « {$ruche->nom} » ou porte son numéro. Renommez-la d'abord.");
+            }
+
             $ruche->restore();
         } else {
             abort_unless(isset(self::MODELES[$type]), 404);
@@ -91,6 +101,13 @@ class CorbeilleController extends Controller
         }
 
         return back()->with('message', 'Remis en place.');
+    }
+
+    private function dejaPrise(Ruche $ruche, int $teamId): bool
+    {
+        return Ruche::whereHas('rucher', fn ($q) => $q->where('team_id', $teamId))
+            ->where(fn ($q) => $q->where('nom', $ruche->nom)->when($ruche->numero, fn ($ou) => $ou->orWhere('numero', $ruche->numero)))
+            ->exists();
     }
 
     private function authorizeRestauration(Request $request, Rucher $rucher): void

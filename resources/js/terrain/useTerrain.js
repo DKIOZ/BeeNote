@@ -1,11 +1,14 @@
 import axios from 'axios';
 import { computed, reactive } from 'vue';
-import { ACTIONS, ajouterJours, ajouterSemaines, jourLocal } from './fields.js';
+import { ACTIONS, ajouterJours, ajouterSemaines, compterNotes, jourLocal } from './fields.js';
 
 // Même valeur que RucherOverview::RAPPEL_JOURS côté serveur.
 const RAPPEL_JOURS = 21;
 import { refreshDonnees } from './prepare.js';
 import { getItem, removeItem, setItem, updateItem } from './store.js';
+
+// Champs de la file qui ne sont pas des observations : le reste redevient la visite si on la rouvre.
+const META = ['client_uuid', 'ruche_id', 'date_visite', 'heure_debut', 'taches_faites', 'note', 'nom', 'creee_le', 'refusee', 'recue', 'noteRefusee', 'complement'];
 import { createVoskEngine, micSupported } from './voice/engine.js';
 import { matchPhrase } from './voice/phrases.js';
 
@@ -113,19 +116,24 @@ function etatRuche(item) {
         return 'hors';
     }
 
-    if (state.visitesDuJour.includes(item.id) || item.derniere_visite?.date === jour) {
+    // Une visite encore dans la file d'envoi compte déjà : le téléphone a pu rester sans réseau plusieurs jours.
+    const enFile = state.queue.filter((v) => v.ruche_id === item.id && !v.refusee).sort((a, b) => (a.date_visite < b.date_visite ? 1 : -1))[0];
+    const derniere = enFile && (!item.derniere_visite || enFile.date_visite >= item.derniere_visite.date) ? enFile.date_visite : item.derniere_visite?.date;
+    const prochaine = enFile && enFile.date_visite === derniere ? enFile.prochaine_visite_prevue ?? null : item.prochaine_visite;
+
+    if (state.visitesDuJour.includes(item.id) || derniere === jour) {
         return 'done';
     }
 
-    const dates = [item.prochaine_visite, ...(item.taches ?? []).map((tache) => tache.date_prevue)].filter(Boolean);
+    const dates = [prochaine, ...(item.taches ?? []).map((tache) => tache.date_prevue)].filter(Boolean);
 
     if (dates.some((date) => date < jour)) {
         return 'late';
     }
 
-    const rappel = item.derniere_visite && !item.prochaine_visite ? ajouterJours(item.derniere_visite.date, RAPPEL_JOURS) : null;
+    const rappel = derniere && !prochaine ? ajouterJours(derniere, RAPPEL_JOURS) : null;
 
-    return !item.derniere_visite || dates.includes(jour) || (rappel && rappel <= jour) ? 'todo' : 'next';
+    return !derniere || dates.includes(jour) || (rappel && rappel <= jour) ? 'todo' : 'next';
 }
 
 function aDuContenu(visite) {
@@ -134,7 +142,8 @@ function aDuContenu(visite) {
 
 const ruchesDuRucher = computed(() => (rucher.value?.ruches ?? []).map((item) => ({ ...item, etat: etatRuche(item) })));
 // Au rucher, on suit la rangée : la prochaine ruche est le numéro suivant qui reste à faire.
-const aVisiter = computed(() => ruchesDuRucher.value.filter((h) => h.etat !== 'done' && h.etat !== 'hors'));
+// À visiter : à faire ou en retard, dans l'ordre des numéros. Une ruche « à venir » n'est pas due.
+const aVisiter = computed(() => ruchesDuRucher.value.filter((h) => h.etat === 'todo' || h.etat === 'late'));
 const prochaineRuche = computed(() => aVisiter.value[0] ?? null);
 // La ruche qui vient après celle en cours, dans l'ordre des numéros, en repartant du début.
 const rucheApres = computed(() => {
@@ -145,7 +154,7 @@ const rucheApres = computed(() => {
 });
 const enAttente = computed(() => state.queue.filter((item) => !item.refusee && !item.noteRefusee));
 const refusees = computed(() => state.queue.filter((item) => item.refusee || item.noteRefusee));
-const notes = computed(() => (state.visite ? Object.keys(state.visite.valeurs).filter((k) => !k.startsWith('_') && state.visite.valeurs[k]).length : 0));
+const notes = computed(() => (state.visite ? compterNotes(state.visite.valeurs) : 0));
 
 async function sauverBrouillon() {
     try {
@@ -225,10 +234,18 @@ function signalerAffichage(affiche) {
     ajusterEcran();
 }
 
-function nouveauBrouillon(id, date = null) {
+function nomDeRuche(id) {
+    return state.donnees?.ruchers.flatMap((r) => r.ruches).find((h) => h.id === id)?.nom ?? 'Ruche';
+}
+
+function nouveauBrouillon(id, date = null, complement = false) {
     state.visite = {
         client_uuid: uuid(),
         ruche_id: id,
+        // Le nom reste lisible même si la ruche disparaît des données entre-temps.
+        nom: nomDeRuche(id),
+        // Cette ruche a déjà sa visite du jour : ce qui est noté s'y ajoute.
+        complement,
         date_visite: date ?? aujourdhui(),
         // Une visite notée après coup n'a pas d'heure : la météo prend alors le milieu de journée.
         heure_debut: date === null ? new Date().toTimeString().slice(0, 5) : null,
@@ -272,8 +289,45 @@ async function commencer(id, date = null, depuisVoix = false) {
     }
 
     state.rucherId = rucherDeLaRuche(id);
-    nouveauBrouillon(id, date);
+
+    // Revenir sur une ruche déjà faite aujourd'hui rouvre sa visite au lieu d'en créer une seconde.
+    if (date === null && !(await rouvrirVisiteDuJour(id))) {
+        nouveauBrouillon(id, null, ruchesDuRucher.value.find((h) => h.id === id)?.etat === 'done');
+    } else if (date !== null) {
+        nouveauBrouillon(id, date);
+    }
+
     aller('visite');
+
+    return true;
+}
+
+async function rouvrirVisiteDuJour(id) {
+    const element = state.queue.find((v) => v.ruche_id === id && v.date_visite === aujourdhui() && !v.recue && !v.refusee);
+
+    if (!element) {
+        return false;
+    }
+
+    const valeurs = Object.fromEntries(Object.entries(element).filter(([cle]) => !META.includes(cle)));
+    state.visite = {
+        client_uuid: element.client_uuid,
+        ruche_id: id,
+        nom: element.nom,
+        complement: element.complement ?? false,
+        date_visite: element.date_visite,
+        heure_debut: element.heure_debut,
+        valeurs,
+        taches_faites: element.taches_faites ?? [],
+        note: element.note,
+        apres_coup: false,
+    };
+    historique = [];
+    Object.assign(state.voix, { echo: null, dernier: null, entendu: null, rate: false, echecs: 0 });
+
+    await updateItem('queue', (file) => (file ?? []).filter((v) => v.client_uuid !== element.client_uuid)).then((file) => { state.queue = file; });
+    state.visitesDuJour = state.visitesDuJour.filter((r) => r !== id);
+    await sauverBrouillon();
 
     return true;
 }
@@ -646,7 +700,8 @@ async function enregistrerVisite() {
             ...valeurs,
             taches_faites: visite.taches_faites,
             note: visite.note,
-            nom: ruche.value?.nom,
+            nom: ruche.value?.nom ?? visite.nom,
+            complement: visite.complement ?? false,
             creee_le: new Date().toISOString(),
         });
 
@@ -679,6 +734,8 @@ async function enregistrerVisite() {
 async function valider() {
     const apresCoup = state.visite?.apres_coup;
     const suite = state.apres;
+    // Le bouton a annoncé cette ruche : c'est elle qu'on ouvre, pas une autre.
+    const annoncee = rucheApres.value;
 
     if (!(await enregistrerVisite())) {
         return;
@@ -704,7 +761,7 @@ async function valider() {
     }
 
     // Le bouton annonce la ruche suivante : au toucher comme à la voix, on y passe.
-    const suivante = prochaineRuche.value;
+    const suivante = annoncee;
     if (!suivante) {
         terminerRucher();
     } else {
@@ -896,7 +953,13 @@ async function initialiser() {
     const rucherDemande = Number(parametres.get('rucher'));
     const rucheDemandee = Number(parametres.get('ruche'));
 
-    const rucherConnu = (state.donnees?.ruchers ?? []).some((item) => item.id === rucherDemande);
+    // Rucher ou ruche tout juste créés : absents des données gardées, on attend les données fraîches.
+    const connu = (id, cle) => (state.donnees?.ruchers ?? []).some((item) => (cle === 'rucher' ? item.id === id : item.ruches.some((h) => h.id === id)));
+    if (navigator.onLine && ((rucherDemande && !connu(rucherDemande, 'rucher')) || (rucheDemandee && !connu(rucheDemandee, 'ruche')))) {
+        await refreshDonnees().then((donnees) => { state.donnees = donnees; }).catch(() => {});
+    }
+
+    const rucherConnu = connu(rucherDemande, 'rucher');
 
     if (rucherConnu) {
         state.rucherId = rucherDemande;

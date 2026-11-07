@@ -32,7 +32,8 @@ class RucherOverview
             ->orderBy('nom')
             ->get()
             ->map(function (Rucher $rucher) use ($taches, $today) {
-                $numeros = self::numeros($rucher->ruches);
+                // Numéro enregistré ; le calcul ne sert qu'aux ruches d'avant la colonne.
+                $numeros = $rucher->ruches->mapWithKeys(fn ($ruche) => [$ruche->id => $ruche->numero])->filter()->all() + self::numeros($rucher->ruches);
                 $ruches = $rucher->ruches
                     ->map(fn ($ruche) => self::ruche($ruche, $numeros[$ruche->id], $taches->where('ruche_id', $ruche->id), $today))
                     ->sortBy('numero')
@@ -44,6 +45,7 @@ class RucherOverview
                     'a_position' => $rucher->latitude !== null,
                     'ruches' => $ruches,
                     'a_visiter' => $ruches->whereIn('etat', ['todo', 'late'])->count(),
+                    'a_surveiller' => $ruches->filter(fn ($r) => $r['alertes'] !== [])->count(),
                     'taches' => self::taches($taches->where('rucher_id', $rucher->id)->whereNull('ruche_id'), $today),
                 ];
             })
@@ -87,11 +89,11 @@ class RucherOverview
      */
     public static function prochainNumero(int $teamId): int
     {
-        $noms = \App\Models\Ruche::withTrashed()
+        $ruches = \App\Models\Ruche::withTrashed()
             ->whereHas('rucher', fn ($q) => $q->withTrashed()->where('team_id', $teamId))
-            ->pluck('nom');
+            ->get(['nom', 'numero']);
 
-        return $noms->map(fn ($nom) => self::numeroDuNom($nom) ?? 0)->push($noms->count())->max() + 1;
+        return $ruches->map(fn ($ruche) => max((int) $ruche->numero, self::numeroDuNom($ruche->nom) ?? 0))->push($ruches->count())->max() + 1;
     }
 
     public static function numeroDuNom(string $nom): ?int
@@ -134,6 +136,9 @@ class RucherOverview
             'qr_token' => $ruche->qr_token,
             'etat' => $etat,
             'visitee' => $visitee,
+            'rappel' => $rappel,
+            // Une ruche peut être à jour et pourtant à surveiller : ce qu'on a vu la dernière fois le dit.
+            'alertes' => $etat === 'hors' ? [] : ($visite?->alertes() ?? []),
             'prochaine_visite' => $prochaine,
             'derniere_visite' => $visite ? [
                 'id' => $visite->id,
@@ -164,9 +169,9 @@ class RucherOverview
             // Un traitement noté le soir pour plusieurs ruches solde le rappel de chacune.
             ->whereNotExists(fn ($q) => $q->selectRaw('1')
                 ->from('traitements')
-                ->whereColumn('traitements.ruche_id', 'visites.ruche_id')
-                ->whereColumn('traitements.date_traitement', 'visites.date_visite')
-                ->whereNull('traitements.deleted_at'))
+                ->whereNull('traitements.deleted_at')
+                ->where(fn ($lien) => $lien->whereColumn('traitements.visite_id', 'visites.id')
+                    ->orWhere(fn ($meme) => $meme->whereColumn('traitements.ruche_id', 'visites.ruche_id')->whereColumn('traitements.date_traitement', 'visites.date_visite'))))
             ->whereHas('ruche')
             ->with('ruche:id,nom')
             ->latest('date_visite')

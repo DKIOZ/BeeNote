@@ -53,7 +53,7 @@ class TacheController extends Controller
 
     public function toggle(Request $request, Tache $tache)
     {
-        abort_unless($tache->team_id === $request->user()->current_team_id, 403);
+        abort_unless($tache->team_id === $request->user()->current_team_id, 404);
         abort_unless($tache->rucher, 404);
         $this->authorize('update', $tache->rucher);
 

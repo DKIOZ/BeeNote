@@ -67,15 +67,17 @@ const flash = computed(() => page.props.flash ?? {});
         </aside>
 
         <div class="min-w-0 flex-1">
-            <div v-if="!enLigne" class="flex items-center justify-center gap-2 bg-forest px-4 py-1.5 text-sm font-semibold text-white">
+            <div v-if="!enLigne" role="status" class="flex items-center justify-center gap-2 bg-forest px-4 py-1.5 text-sm font-semibold text-white">
                 <span aria-hidden="true" class="h-2 w-2 rounded-full bg-honey" />
-                Pas de réseau
+                Pas de réseau : tout est gardé sur le téléphone
             </div>
 
             <main class="mx-auto max-w-[1080px] lg:px-8 lg:py-8" :class="sansNav ? 'pb-6' : 'pb-28 lg:pb-8'">
                 <slot name="header" />
-                <div v-if="flash.message" role="status" class="mx-4 mt-3 rounded-2xl bg-mint px-4 py-3 font-semibold text-mint-ink lg:mx-0">{{ flash.message }}</div>
-                <div v-if="flash.erreur" role="alert" class="mx-4 mt-3 rounded-2xl bg-peach px-4 py-3 font-semibold text-rust lg:mx-0">{{ flash.erreur }}</div>
+                <div v-if="flash.message || flash.erreur" class="pointer-events-none fixed left-4 right-4 top-3 z-50 flex justify-center lg:left-64">
+                    <p v-if="flash.message" role="status" class="pointer-events-auto max-w-md rounded-2xl bg-forest px-4 py-3 font-semibold text-white shadow-nav">{{ flash.message }}</p>
+                    <p v-else role="alert" class="pointer-events-auto max-w-md rounded-2xl bg-peach px-4 py-3 font-semibold text-rust shadow-nav">{{ flash.erreur }}</p>
+                </div>
                 <slot />
             </main>
         </div>

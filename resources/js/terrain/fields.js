@@ -1,36 +1,36 @@
 // Chaque bouton porte la phrase exacte à dire : dire un mot revient à toucher le bouton.
-const obs = (id, label, options) => ({ id, label, options: options.map(([value, text]) => ({ value, text })) });
+const obs = (id, label, options, aide = null) => ({ id, label, aide, options: options.map(([value, text]) => ({ value, text })) });
 
 export const FAMILLES = [
     {
         titre: 'La colonie',
         groupes: [
-            obs('humeur_colonie', 'Humeur', [['calme', 'Calme'], ['agitee', 'Agitée'], ['agressive', 'Agressive']]),
-            obs('estimation_population', 'Force', [['faible', 'Colonie faible'], ['normale', 'Colonie normale'], ['forte', 'Colonie forte']]),
+            obs('humeur_colonie', 'Humeur', [['calme', 'Calme'], ['agitee', 'Agitée'], ['agressive', 'Agressive']], 'comportement à l\'ouverture'),
+            obs('estimation_population', 'Force', [['faible', 'Colonie faible'], ['normale', 'Colonie normale'], ['forte', 'Colonie forte']], 'nombre d\'abeilles'),
         ],
     },
     {
         titre: 'Reine et ponte',
         groupes: [
-            obs('reine_vue', 'Reine', [['ok', 'Reine vue'], ['non_ok', 'Reine pas vue']]),
-            obs('ponte_observee', 'Ponte', [['ok', 'Ponte vue'], ['non_ok', 'Pas de ponte']]),
-            obs('cellules_royales', 'Cellules royales', [['non_ok', 'Pas de cellules'], ['ok', 'Cellules royales']]),
+            obs('reine_vue', 'Reine', [['ok', 'Reine vue'], ['non_ok', 'Reine pas vue']], 'la mère de la colonie'),
+            obs('ponte_observee', 'Ponte', [['ok', 'Ponte vue'], ['non_ok', 'Pas de ponte']], 'œufs au fond des cellules'),
+            obs('cellules_royales', 'Cellules royales', [['non_ok', 'Pas de cellules'], ['ok', 'Cellules royales']], 'grandes cellules de reine, signe d\'essaimage'),
         ],
     },
     {
         titre: 'Santé',
         groupes: [
-            obs('reserves_miel', 'Réserves de miel', [['suffisantes', 'Réserves bonnes'], ['insuffisantes', 'Réserves faibles']]),
-            obs('varroas_observes', 'Varroas', [['non_ok', 'Pas de varroas'], ['ok', 'Varroas présents']]),
+            obs('reserves_miel', 'Réserves de miel', [['suffisantes', 'Réserves bonnes'], ['insuffisantes', 'Réserves faibles']], 'miel stocké pour la colonie'),
+            obs('varroas_observes', 'Varroas', [['non_ok', 'Pas de varroas'], ['ok', 'Varroas présents']], 'petits acariens rouges sur les abeilles'),
         ],
     },
 ];
 
 export const DETAILS = [
-    obs('surface_couvain', 'Couvain', [['faible', 'Couvain faible'], ['normale', 'Couvain normal'], ['importante', 'Couvain fort']]),
-    obs('frelons_asiatiques', 'Frelons asiatiques', [['absents', 'Pas de frelons'], ['quelques_uns', 'Quelques frelons'], ['nombreux', 'Beaucoup de frelons']]),
-    obs('fausse_teigne', 'Fausse teigne', [['non_ok', 'Pas de teigne'], ['ok', 'Teigne présente']]),
-    obs('type_nourrissement', 'Nourriture donnée', [['sirop', 'Sirop'], ['candi', 'Candi'], ['pate', 'Pâte']]),
+    obs('surface_couvain', 'Couvain', [['faible', 'Couvain faible'], ['normale', 'Couvain normal'], ['importante', 'Couvain fort']], 'œufs, larves et nymphes'),
+    obs('frelons_asiatiques', 'Frelons asiatiques', [['absents', 'Pas de frelons'], ['quelques_uns', 'Quelques frelons'], ['nombreux', 'Beaucoup de frelons']], 'devant l\'entrée de la ruche'),
+    obs('fausse_teigne', 'Fausse teigne', [['non_ok', 'Pas de teigne'], ['ok', 'Teigne présente']], 'chenilles et galeries dans la cire'),
+    obs('type_nourrissement', 'Nourriture donnée', [['sirop', 'Sirop'], ['candi', 'Candi'], ['pate', 'Pâte']], 'sirop liquide, candi ou pâte de sucre'),
 ];
 
 export const ACTIONS = [
@@ -62,6 +62,13 @@ export function ajouterJours(dateIso, jours) {
 
 export function ajouterSemaines(dateIso, semaines) {
     return ajouterJours(dateIso, semaines * 7);
+}
+
+/**
+ * Nombre de points notés, le même sur tous les écrans : une ligne du récapitulatif = un point.
+ */
+export function compterNotes(valeurs) {
+    return resumeVisite(valeurs ?? {}).length;
 }
 
 /**

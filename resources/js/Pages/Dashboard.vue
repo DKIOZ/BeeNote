@@ -6,7 +6,8 @@ import Comb from '@/Components/Comb.vue';
 import Hex from '@/Components/Hex.vue';
 import Icon from '@/Components/Icon.vue';
 import { dateCourte, dateFr } from '@/terrain/fields.js';
-import { pendingCount } from '@/terrain/store.js';
+import { compterNotes } from '@/terrain/fields.js';
+import { getItem, pendingCount } from '@/terrain/store.js';
 
 const props = defineProps({
     ruchers: Array,
@@ -29,19 +30,27 @@ const titre = computed(() => {
         return '';
     }
     if (rucher.a_visiter === 0) {
-        return `Tout est à jour à ${rucher.nom}`;
+        return `Tout est à jour : ${rucher.nom}`;
     }
 
     return `${rucher.a_visiter} ${rucher.a_visiter > 1 ? 'ruches' : 'ruche'} à visiter : ${rucher.nom}`;
 });
+// À jour ne veut pas dire en bonne santé : ce qu'on a vu la dernière fois reste affiché.
+const aSurveiller = computed(() => props.ruchers.flatMap((r) => r.ruches.filter((h) => h.alertes?.length).map((h) => ({ ...h, rucher: r.nom }))));
+const enCours = ref(null);
 
 const attente = ref(0);
-const voixPrete = ref(true);
+const voixPrete = ref(false);
 const faite = ref(null);
 let effacer = null;
 
 onMounted(async () => {
     attente.value = await pendingCount().catch(() => 0);
+    // Une visite laissée à moitié se reprend dès l'accueil.
+    const brouillon = await getItem('brouillon').catch(() => null);
+    if (brouillon && compterNotes(brouillon.valeurs)) {
+        enCours.value = brouillon;
+    }
     try {
         voixPrete.value = localStorage.getItem('bn-voix-prete') === '1';
     } catch {
@@ -85,7 +94,7 @@ const annuler = () => {
                 <Link :href="route('ruchers.create')" class="bn-btn-flat mt-5">Créer mon rucher</Link>
             </section>
             <ol class="mx-4 mt-5 flex flex-col gap-2.5 lg:mx-0">
-                <li v-for="(etape, index) in ['Nommez votre rucher', 'Indiquez le nombre de ruches', 'Notez votre première visite']" :key="etape" class="bn-card flex min-h-[64px] items-center gap-3 px-3.5 py-2 font-semibold">
+                <li v-for="(etape, index) in ['Créez votre rucher et ses ruches', 'Préparez le téléphone pour le rucher', 'Notez votre première visite']" :key="etape" class="bn-card flex min-h-[64px] items-center gap-3 px-3.5 py-2 font-semibold">
                     <Hex etat="todo" :mark="index + 1" :size="38" />
                     {{ etape }}
                 </li>
@@ -96,7 +105,8 @@ const annuler = () => {
             <header class="hidden items-end justify-between gap-6 lg:flex">
                 <div>
                     <p class="text-muted">{{ dateFr(aujourdhui) }}</p>
-                    <h1 class="bn-title mt-1 text-4xl leading-tight">Votre saison en un coup d'œil</h1>
+                    <h1 class="bn-title mt-1 text-4xl leading-tight">{{ titre }}</h1>
+                    <p class="mt-1 text-muted">Les visites se notent sur le téléphone, au rucher. Ici, vous tenez le registre et préparez la saison.</p>
                 </div>
                 <div class="flex flex-none items-center gap-3">
                     <Link v-if="attente" :href="route('terrain') + '#synchro'" class="bn-btn-2">{{ attente }} à envoyer</Link>
@@ -124,6 +134,22 @@ const annuler = () => {
                 </div>
             </section>
 
+            <Link v-if="enCours" :href="route('terrain')" class="mx-4 mt-3 flex min-h-[60px] items-center justify-between gap-3 rounded-card bg-cream px-4 py-2 text-cream-ink lg:mx-0">
+                <span>
+                    <span class="block font-semibold">Visite en cours : {{ enCours.nom ?? 'une ruche' }}</span>
+                    <span class="block text-sm">{{ compterNotes(enCours.valeurs) }} points notés, rien n'est perdu</span>
+                </span>
+                <span class="font-bold">Reprendre</span>
+            </Link>
+
+            <section v-if="aSurveiller.length" class="mx-4 mt-3 rounded-card bg-peach p-4 text-rust lg:mx-0">
+                <h2 class="font-bold">À surveiller</h2>
+                <Link v-for="ruche in aSurveiller" :key="ruche.id" :href="route('ruches.show', ruche.id)" class="mt-1 flex min-h-[44px] items-center justify-between gap-2">
+                    <span><strong>{{ ruche.nom }}</strong> · {{ ruche.alertes.join(', ') }}</span>
+                    <Icon nom="suite" :size="18" />
+                </Link>
+            </section>
+
             <section v-if="autres.length" class="mx-4 mt-3 flex flex-col gap-2 lg:hidden">
                 <Link v-for="rucher in autres" :key="rucher.id" :href="route('terrain', { rucher: rucher.id })" class="bn-card flex min-h-[60px] items-center justify-between gap-3 px-4 py-2">
                     <span>
@@ -139,7 +165,7 @@ const annuler = () => {
                 <button type="button" class="min-h-[48px] flex-none px-2 font-bold text-honey underline" @click="annuler">Annuler</button>
             </p>
 
-            <Link v-if="!voixPrete" :href="route('demarrage')" class="mx-5 mt-3 flex min-h-[44px] items-center gap-2 font-semibold text-rust lg:mx-0">
+            <Link v-if="!voixPrete" :href="route('demarrage')" class="mx-5 mt-3 flex min-h-[44px] items-center gap-2 font-semibold text-forest underline lg:hidden">
                 <Icon nom="suite" :size="20" />
                 Préparer le téléphone pour le rucher
             </Link>

@@ -33,8 +33,8 @@ const url = computed(() => route('registre.export', {
 
         <div class="flex max-w-xl flex-col gap-4 px-4 pb-6 pt-3 lg:px-0">
             <div class="grid grid-cols-2 gap-2">
-                <Field id="depuis" v-model="depuis" type="date" label="Du" />
-                <Field id="jusqu" v-model="jusqu" type="date" label="Au" />
+                <Field id="depuis" v-model="depuis" type="date" label="Du" :erreur="$page.props.errors.depuis" />
+                <Field id="jusqu" v-model="jusqu" type="date" label="Au" :min="depuis" :erreur="$page.props.errors.jusqu || (jusqu < depuis ? 'La date de fin doit être après la date de début.' : null)" />
             </div>
             <Field id="rucher" v-model="rucher" label="Ruchers" :options="[{ value: '', text: 'Tous les ruchers' }, ...ruchers.map((r) => ({ value: r.id, text: r.nom }))]" />
 
@@ -47,7 +47,8 @@ const url = computed(() => route('registre.export', {
 
             <p v-if="attente" class="rounded-2xl bg-cream p-3.5 text-cream-ink">{{ attente }} {{ attente > 1 ? 'visites ne sont' : 'visite n\'est' }} pas encore {{ attente > 1 ? 'envoyées' : 'envoyée' }} : absente{{ attente > 1 ? 's' : '' }} de ce registre.</p>
 
-            <a :href="url" class="bn-btn">Télécharger</a>
+            <p v-if="$page.props.errors.format" role="alert" class="rounded-2xl bg-peach p-3 font-semibold text-rust">{{ $page.props.errors.format }}</p>
+            <a :href="jusqu < depuis ? undefined : url" :aria-disabled="jusqu < depuis" class="bn-btn" :class="jusqu < depuis && 'pointer-events-none bg-soft text-muted shadow-none'">Télécharger</a>
             <p class="text-sm text-muted">Le téléchargement demande du réseau.</p>
         </div>
     </AppLayout>

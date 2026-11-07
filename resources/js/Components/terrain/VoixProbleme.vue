@@ -8,7 +8,7 @@ const { state, ecouter } = useTerrain();
 const CAUSES = {
     micro: {
         titre: 'Le micro est bloqué',
-        texte: 'Autorisez-le dans les réglages du navigateur, puis réessayez.',
+        texte: 'Touchez les boutons pour noter, rien n\'est perdu. Pour la voix, autorisez le micro dans les réglages du navigateur, puis réessayez.',
     },
     moteur: {
         titre: 'La voix n\'a pas pu se préparer',

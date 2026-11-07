@@ -106,8 +106,21 @@ class RucheController extends Controller
             ->where(fn ($q) => $q->whereNull('deleted_at')->whereIn('rucher_id', Rucher::where('team_id', $teamId)->select('id')))
             ->ignore($ruche?->id);
 
+        // Le numéro porté par le nom ne doit pas être celui d'une autre ruche du compte.
+        $numeroPris = function (string $attribut, $valeur, $echec) use ($teamId, $ruche) {
+            $numero = RucherOverview::numeroDuNom((string) $valeur);
+            $autre = $numero ? Ruche::where('numero', $numero)
+                ->whereHas('rucher', fn ($q) => $q->where('team_id', $teamId))
+                ->when($ruche, fn ($q) => $q->whereKeyNot($ruche->id))
+                ->value('nom') : null;
+
+            if ($autre) {
+                $echec("Le numéro {$numero} est déjà celui de « {$autre} ». Choisissez un autre numéro.");
+            }
+        };
+
         return [
-            'nom' => ['required', 'string', 'max:50', $nomPris],
+            'nom' => ['required', 'string', 'max:50', $nomPris, $numeroPris],
             'couleur' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'type' => ['sometimes', 'filled', Rule::in(['dadant', 'warre', 'langstroth', 'ktbh', 'autre'])],
             'statut' => ['sometimes', 'filled', Rule::in(['active', 'inactive', 'morte'])],

@@ -27,12 +27,18 @@ class NoterController extends Controller
 
     public function create(Request $request)
     {
+        // « Compléter le traitement » part de la visite : sa date est celle du traitement.
+        $visite = $request->integer('visite')
+            ? Visite::where('team_id', $request->user()->current_team_id)->with('ruche:id,nom')->find($request->integer('visite'))
+            : null;
+
         return Inertia::render('Noter', [
+            'visite' => $visite ? ['id' => $visite->id, 'date' => $visite->date_visite->toDateString(), 'ruche' => $visite->ruche?->nom] : null,
             'type' => in_array($request->query('type'), array_keys(self::MODELES)) ? $request->query('type') : 'traitement',
             'rucheId' => $request->integer('ruche') ?: null,
             'visiteId' => $request->integer('visite') ?: null,
             'ruchers' => Rucher::where('team_id', $request->user()->current_team_id)
-                ->with(['ruches' => fn ($q) => $q->orderBy('id')->select('id', 'nom', 'rucher_id')])
+                ->with(['ruches' => fn ($q) => $q->orderBy('numero')->orderBy('id')->select('id', 'nom', 'rucher_id', 'statut')])
                 ->orderBy('nom')
                 ->get(['id', 'nom']),
             'aujourdhui' => now()->toDateString(),
@@ -51,7 +57,7 @@ class NoterController extends Controller
         ]);
 
         $ruches = $this->teamRuches($data['ruche_ids']);
-        abort_unless($ruches->count() === count(array_unique($data['ruche_ids'])), 403);
+        abort_unless($ruches->count() === count(array_unique($data['ruche_ids'])), 404);
         $ruches->each(fn ($ruche) => $this->authorizeRuche($ruche, 'update'));
 
         if ($type === 'deplacement') {
@@ -59,6 +65,14 @@ class NoterController extends Controller
 
             if ($ruches->isEmpty()) {
                 throw ValidationException::withMessages(['vers_rucher_id' => 'Déjà dans ce rucher.']);
+            }
+
+            // Un déplacement part du rucher actuel : il ne peut pas être daté avant le précédent.
+            foreach ($ruches as $ruche) {
+                $dernier = RucheEmplacement::where('ruche_id', $ruche->id)->orderByDesc('id')->first();
+                if ($dernier && $dernier->date_deplacement->toDateString() > $data['date_deplacement']) {
+                    throw ValidationException::withMessages(['date_deplacement' => "{$ruche->nom} a déjà été déplacée le {$dernier->date_deplacement->format('d/m/Y')}. Choisissez une date à partir de ce jour."]);
+                }
             }
         }
 
@@ -93,7 +107,13 @@ class NoterController extends Controller
     public function update(Request $request, string $type, int $id)
     {
         $fiche = $this->fiche($type, $id, 'update');
-        $fiche->update($request->validate($this->rules($type, true)));
+        $data = $request->validate($this->rules($type, true));
+
+        if ($type === 'deplacement') {
+            $this->verifierChronologie($fiche, $data['date_deplacement']);
+        }
+
+        $fiche->update($data);
 
         if ($type === 'deplacement') {
             $fiche->ruche->recalculerRegistre();
@@ -132,6 +152,23 @@ class NoterController extends Controller
         $fiche->delete();
 
         return redirect()->route('ruches.show', $rucheId)->with('message', 'Mis à la corbeille.');
+    }
+
+    /**
+     * Une date corrigée reste entre le déplacement d'avant et celui d'après.
+     */
+    private function verifierChronologie(RucheEmplacement $fiche, string $date): void
+    {
+        $avant = RucheEmplacement::where('ruche_id', $fiche->ruche_id)->where('id', '<', $fiche->id)->orderByDesc('id')->first();
+        $apres = RucheEmplacement::where('ruche_id', $fiche->ruche_id)->where('id', '>', $fiche->id)->orderBy('id')->first();
+
+        if ($avant && $avant->date_deplacement->toDateString() > $date) {
+            throw ValidationException::withMessages(['date_deplacement' => "Le déplacement précédent date du {$avant->date_deplacement->format('d/m/Y')}."]);
+        }
+
+        if ($apres && $apres->date_deplacement->toDateString() < $date) {
+            throw ValidationException::withMessages(['date_deplacement' => "Le déplacement suivant date du {$apres->date_deplacement->format('d/m/Y')}."]);
+        }
     }
 
     private function fiche(string $type, int $id, string $ability = 'view')

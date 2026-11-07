@@ -48,7 +48,7 @@ Le micro et le service worker exigent HTTPS, sauf sur `localhost`. `tools/voice-
 
 - `APP_ENV=production`, `APP_DEBUG=false`, HTTPS, serveur de mail configuré : la vérification d'e-mail s'active en production.
 - Installer sans les outils de développement : `composer install --no-dev --optimize-autoloader`.
-- Derrière un proxy, renseigner `TRUSTED_PROXIES` (ses adresses). Sinon les limites par adresse IP se trompent.
+- Derrière un proxy, renseigner `TRUSTED_PROXIES` avec ses adresses exactes. Jamais `*` : n'importe qui pourrait alors se faire passer pour une autre adresse et contourner les limites.
 - Héberger le modèle vocal sur vos serveurs et renseigner `VOICE_MODEL_URL`. L'adresse par défaut est celle de la démo de vosk-browser, un tiers dont le contenu s'exécute sur le téléphone. Vérifier l'empreinte du fichier avant de le publier (`sha256sum vosk-model-small-fr-pguyot-0.3.tar.gz`).
 - Faire valider `resources/markdown/policy.md` et `resources/markdown/terms.md`.
 - Vérifier les champs légaux du registre d'élevage.

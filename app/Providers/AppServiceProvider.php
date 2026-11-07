@@ -31,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // Une limite par usage : lire ses données ne doit pas bloquer l'envoi ou l'export.
-        foreach (['qr' => 60, 'terrain-donnees' => 60, 'terrain-envoi' => 60, 'terrain-notes' => 60, 'export' => 20] as $usage => $parMinute) {
+        foreach (['qr' => 60, 'terrain-donnees' => 60, 'terrain-envoi' => 20, 'terrain-notes' => 60, 'export' => 5] as $usage => $parMinute) {
             RateLimiter::for($usage, fn (Request $request) => Limit::perMinute($parMinute)->by($request->user()?->id ?: $request->ip()));
         }
 

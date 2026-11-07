@@ -24,6 +24,8 @@ class SecurityHeaders
         $response = $next($request);
 
         $headers = $response->headers;
+        $headers->remove('X-Powered-By');
+        header_remove('X-Powered-By');
         $headers->set('X-Content-Type-Options', 'nosniff');
         $headers->set('X-Frame-Options', 'DENY');
         $headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');

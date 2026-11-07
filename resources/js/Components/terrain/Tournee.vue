@@ -4,7 +4,7 @@ import { usePage } from '@inertiajs/vue3';
 import Hex from '@/Components/Hex.vue';
 import Icon from '@/Components/Icon.vue';
 import VoixProbleme from '@/Components/terrain/VoixProbleme.vue';
-import { dateCourte } from '@/terrain/fields.js';
+import { compterNotes, dateCourte } from '@/terrain/fields.js';
 import { useTerrain } from '@/terrain/useTerrain.js';
 
 const page = usePage();
@@ -12,8 +12,10 @@ const { state, rucher, ruchesDuRucher, prochaineRuche, aller, commencer, ecouter
 
 // Une visite quittée reste en cours : la tournée la montre et propose de la reprendre.
 const enCours = computed(() => (state.visite ? ruchesDuRucher.value.find((r) => r.id === state.visite.ruche_id) ?? null : null));
-const notesEnCours = computed(() => Object.keys(state.visite?.valeurs ?? {}).filter((cle) => !cle.startsWith('_') && state.visite.valeurs[cle]).length);
+const notesEnCours = computed(() => compterNotes(state.visite?.valeurs));
 const faites = computed(() => ruchesDuRucher.value.filter((r) => r.etat === 'done').length);
+// Une seule étiquette pour l'écran et le lecteur d'écran.
+const etiquette = (ruche) => (enCours.value?.id === ruche.id ? 'En cours' : prochaineRuche.value?.id === ruche.id ? `Maintenant, ${libelle(ruche).toLowerCase()}` : libelle(ruche));
 const enTournee = computed(() => ruchesDuRucher.value.filter((r) => r.etat !== 'hors').length);
 const voixActive = computed(() => {
     try {
@@ -32,7 +34,9 @@ const etatSuivante = computed(() => {
         return null;
     }
 
-    return ruche.taches[0]?.titre ?? (ruche.derniere_visite ? `Dernière visite le ${dateCourte(ruche.derniere_visite.date)} : ${ruche.derniere_visite.resume}` : 'Pas encore de visite');
+    const alerte = ruche.alertes?.length ? ` À surveiller : ${ruche.alertes.join(', ')}.` : '';
+
+    return ruche.taches[0]?.titre ?? (ruche.derniere_visite ? `Dernière visite le ${dateCourte(ruche.derniere_visite.date)} : ${ruche.derniere_visite.resume}.${alerte}` : 'Pas encore de visite');
 });
 
 const basculerEcoute = () => (state.voix.ecoute ? arreterEcoute() : ecouter(page.props.voiceModelUrl));
@@ -46,11 +50,17 @@ const basculerEcoute = () => (state.voix.ecoute ? arreterEcoute() : ecouter(page
             <p class="mb-3 mt-1 text-sage">{{ faites }} {{ faites > 1 ? 'ruches' : 'ruche' }} sur {{ enTournee }} {{ faites > 1 ? 'visitées' : 'visitée' }}</p>
 
             <div role="group" aria-label="Ruches du rucher" class="flex flex-wrap gap-1">
-                <button v-for="ruche in ruchesDuRucher" :key="ruche.id" type="button" :aria-label="`${ruche.nom}, ${libelle(ruche)}`" class="flex flex-col items-center gap-0.5 text-sm font-semibold" :class="serree ? 'w-[76px]' : 'w-[104px]'" @click="commencer(ruche.id)">
+                <button v-for="ruche in ruchesDuRucher" :key="ruche.id" type="button" :aria-label="`${ruche.nom}, ${etiquette(ruche)}`" class="flex flex-col items-center gap-0.5 text-sm font-semibold" :class="serree ? 'w-[76px]' : 'w-[104px]'" @click="commencer(ruche.id)">
                     <Hex :etat="prochaineRuche?.id === ruche.id && ruche.etat === 'next' ? 'todo' : ruche.etat" :mark="ruche.numero" :size="serree ? 60 : 96" sur-vert :class="prochaineRuche?.id === ruche.id && 'animate-bn-pulse'" />
-                    {{ enCours?.id === ruche.id ? 'En cours' : prochaineRuche?.id === ruche.id ? 'Maintenant' : libelle(ruche) }}
+                    {{ etiquette(ruche) }}
                 </button>
             </div>
+        </section>
+
+        <section v-if="rucher.taches?.length" class="mx-4 mt-3 rounded-card bg-white p-4 shadow-card lg:mx-0">
+            <h2 class="font-bold">Pour tout le rucher</h2>
+            <p v-for="tache in rucher.taches" :key="tache.id" class="mt-1" :class="tache.retard ? 'font-semibold text-rust' : 'text-muted'">{{ tache.titre }}<template v-if="tache.retard">, en retard</template></p>
+            <p class="mt-1 text-sm text-muted">À cocher au récapitulatif d'une ruche.</p>
         </section>
 
         <section v-if="enCours" class="mx-4 mt-3 rounded-card bg-cream p-4 lg:mx-0">

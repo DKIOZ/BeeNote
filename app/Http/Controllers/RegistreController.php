@@ -10,6 +10,8 @@ use Inertia\Inertia;
 
 class RegistreController extends Controller
 {
+    public const PDF_MAX = 1000;
+
     private const TYPES = ['visite' => 'Visite', 'traitement' => 'Traitement', 'recolte' => 'Récolte', 'deplacement' => 'Déplacement'];
 
     public function index(Request $request)
@@ -38,6 +40,10 @@ class RegistreController extends Controller
             'depuis' => ['required', 'date_format:Y-m-d'],
             'jusqu' => ['required', 'date_format:Y-m-d', 'after_or_equal:depuis'],
             'rucher_id' => ['nullable', 'integer'],
+        ], [
+            'jusqu.after_or_equal' => 'La date de fin doit être après la date de début.',
+            'depuis.date_format' => 'Date de début invalide.',
+            'jusqu.date_format' => 'Date de fin invalide.',
         ]);
 
         $teamId = $request->user()->current_team_id;
@@ -51,6 +57,11 @@ class RegistreController extends Controller
         $nom = 'registre-'.$data['depuis'].'-'.$data['jusqu'];
 
         if ($data['format'] === 'pdf') {
+            // Au-delà, la mise en page PDF épuise la mémoire du serveur. Le tableur n'a pas de limite.
+            if ($lignes->count() > self::PDF_MAX) {
+                return back()->withErrors(['format' => 'Plus de '.self::PDF_MAX." lignes sur cette période : choisissez le format tableur, ou une période plus courte."]);
+            }
+
             return Pdf::loadView('pdf.registre', [
                 'lignes' => $lignes,
                 'types' => self::TYPES,
@@ -65,7 +76,7 @@ class RegistreController extends Controller
             $sortie = fopen('php://output', 'w');
             fwrite($sortie, "\xEF\xBB\xBF");
             // Une colonne par information saisie : le tableur peut filtrer et additionner.
-            $colonnes = ['produit' => 'Produit', 'cible' => 'Cible', 'dose' => 'Dose', 'lot' => 'Lot', 'miel' => 'Miel', 'poids_kg' => 'Poids (kg)', 'depuis' => 'Depuis', 'vers' => 'Vers'];
+            $colonnes = ['notes' => 'Notes', 'produit' => 'Produit', 'cible' => 'Cible', 'dose' => 'Dose', 'lot' => 'Lot', 'miel' => 'Miel', 'poids_kg' => 'Poids (kg)', 'depuis' => 'Depuis', 'vers' => 'Vers'];
             fputcsv($sortie, ['Date', 'Type', 'Ruche', 'Rucher', 'Détail', ...array_values($colonnes)], ';', escape: '');
 
             foreach ($lignes as $ligne) {

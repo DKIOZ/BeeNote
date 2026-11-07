@@ -4,7 +4,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Hex from '@/Components/Hex.vue';
 import Icon from '@/Components/Icon.vue';
 import RuchesTable from '@/Components/RuchesTable.vue';
-import { dateCourte } from '@/terrain/fields.js';
+import { dateCourte, jourLocal } from '@/terrain/fields.js';
 
 defineProps({ rucher: Object, peutSupprimer: Boolean });
 
@@ -12,18 +12,31 @@ function etatTexte(ruche) {
     if (ruche.etat === 'hors') {
         return ruche.statut === 'morte' ? 'Morte, hors tournée' : 'Inactive, hors tournée';
     }
-    if (ruche.taches[0]) {
-        return ruche.taches[0].titre + (ruche.taches[0].retard ? ', en retard' : '');
-    }
+
+    const morceaux = [];
     if (ruche.etat === 'done') {
-        return 'Visitée aujourd\'hui';
-    }
-    if (ruche.prochaine_visite) {
-        return `Prochaine visite le ${dateCourte(ruche.prochaine_visite)}`;
+        morceaux.push(ruche.prochaine_visite ? `Visitée aujourd'hui · prochaine le ${dateCourte(ruche.prochaine_visite)}` : 'Visitée aujourd\'hui');
+    } else if (ruche.etat === 'late') {
+        morceaux.push(ruche.prochaine_visite && ruche.prochaine_visite < aujourdhui ? `En retard depuis le ${dateCourte(ruche.prochaine_visite)}` : 'En retard');
+    } else if (ruche.etat === 'todo') {
+        morceaux.push(ruche.derniere_visite ? 'À visiter aujourd\'hui' : 'Pas encore de visite');
+    } else if (ruche.prochaine_visite) {
+        morceaux.push(`Prochaine visite le ${dateCourte(ruche.prochaine_visite)}`);
+    } else if (ruche.rappel) {
+        morceaux.push(`À revoir vers le ${dateCourte(ruche.rappel)}`);
     }
 
-    return ruche.derniere_visite ? `Dernière visite le ${dateCourte(ruche.derniere_visite.date)}` : 'Pas encore de visite';
+    if (ruche.taches[0]) {
+        morceaux.push(ruche.taches[0].titre + (ruche.taches[0].retard ? ', en retard' : ''));
+    }
+    if (ruche.alertes?.length) {
+        morceaux.push(`À surveiller : ${ruche.alertes.join(', ')}`);
+    }
+
+    return morceaux.join(' · ');
 }
+
+const aujourdhui = jourLocal();
 </script>
 
 <template>
@@ -35,7 +48,7 @@ function etatTexte(ruche) {
             </header>
             <h1 class="bn-title text-4xl leading-tight">{{ rucher.nom }}</h1>
             <p class="mb-3.5 mt-1 text-sage">{{ rucher.ruches.length }} {{ rucher.ruches.length > 1 ? 'ruches' : 'ruche' }}<template v-if="!rucher.a_position"> · position à ajouter pour la météo</template></p>
-            <Link v-if="rucher.ruches.length" :href="route('terrain', { rucher: rucher.id })" class="bn-btn-flat">Visiter ce rucher</Link>
+            <Link v-if="rucher.ruches.length" :href="route('terrain', { rucher: rucher.id })" class="bn-btn-flat">Visiter le rucher</Link>
         </section>
 
         <section class="px-4 pt-5 lg:px-0">
@@ -50,7 +63,7 @@ function etatTexte(ruche) {
                     <Hex :etat="ruche.etat" :mark="ruche.numero" :couleur="ruche.couleur" :size="50" />
                     <span class="min-w-0 flex-1">
                         <span class="block font-semibold">{{ ruche.nom }}</span>
-                        <span class="block text-sm" :class="ruche.etat === 'late' ? 'font-semibold text-rust' : 'text-muted'">{{ etatTexte(ruche) }}</span>
+                        <span class="block text-sm" :class="ruche.etat === 'late' || ruche.alertes?.length ? 'font-semibold text-rust' : 'text-muted'">{{ etatTexte(ruche) }}</span>
                     </span>
                 </Link>
             </div>

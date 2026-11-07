@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Rucher;
+use Illuminate\Auth\Access\Response;
 
 class RucherPolicy
 {
@@ -19,21 +20,28 @@ class RucherPolicy
         return $user->current_team_id !== null;
     }
 
-    public function view(User $user, Rucher $rucher): bool
+    // Un rucher d'une autre équipe répond « introuvable » : on ne révèle pas qu'il existe.
+    public function view(User $user, Rucher $rucher): Response
     {
-        return $this->isInTeam($user, $rucher);
+        return $this->isInTeam($user, $rucher) ? Response::allow() : Response::denyAsNotFound();
     }
 
-    public function update(User $user, Rucher $rucher): bool
+    public function update(User $user, Rucher $rucher): Response
     {
-        return $this->isInTeam($user, $rucher)
-            && $user->hasTeamPermission($rucher->team, 'update');
+        if (! $this->isInTeam($user, $rucher)) {
+            return Response::denyAsNotFound();
+        }
+
+        return $user->hasTeamPermission($rucher->team, 'update') ? Response::allow() : Response::deny();
     }
 
-    public function delete(User $user, Rucher $rucher): bool
+    public function delete(User $user, Rucher $rucher): Response
     {
-        return $this->isInTeam($user, $rucher)
-            && $user->hasTeamPermission($rucher->team, 'delete');
+        if (! $this->isInTeam($user, $rucher)) {
+            return Response::denyAsNotFound();
+        }
+
+        return $user->hasTeamPermission($rucher->team, 'delete') ? Response::allow() : Response::deny();
     }
 
     private function isInTeam(User $user, Rucher $rucher): bool

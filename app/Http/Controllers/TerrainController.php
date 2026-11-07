@@ -76,32 +76,55 @@ class TerrainController extends Controller
             return ['client_uuid' => $uuid, 'statut' => 'refusee', 'erreurs' => ['ruche_id']];
         }
 
-        $visite = Visite::withTrashed()->where('team_id', $user->current_team_id)->where('client_uuid', $uuid)->first();
+        $dejaRecue = Visite::withTrashed()->where('team_id', $user->current_team_id)
+            ->where(fn ($q) => $q->where('client_uuid', $uuid)->orWhere('uuids_fusionnes', 'like', '%'.$uuid.'%'))
+            ->first();
 
-        if ($visite) {
-            return ['client_uuid' => $uuid, 'statut' => 'deja_recue', 'id' => $visite->id];
+        if ($dejaRecue) {
+            return ['client_uuid' => $uuid, 'statut' => 'deja_recue', 'id' => $dejaRecue->id];
         }
 
         $donnees = $validateur->validated();
-        $visite = new Visite(VisiteFields::clean($donnees));
+        $nouvelle = VisiteFields::clean($donnees);
 
-        // Une tâche n'est soldée que si sa visite est bien acceptée.
-        DB::transaction(function () use ($visite, $donnees, $uuid, $ruche, $user) {
-            $visite->forceFill([
-                'client_uuid' => $uuid,
-                'ruche_id' => $ruche->id,
-                'user_id' => $user->id,
-                'team_id' => $user->current_team_id,
-            ])->save();
+        // Revenir sur une ruche le même jour complète sa visite : le registre n'a jamais deux visites du jour.
+        $duJour = Visite::where('team_id', $user->current_team_id)
+            ->where('ruche_id', $ruche->id)
+            ->whereDate('date_visite', $donnees['date_visite'])
+            ->orderBy('id')
+            ->first();
 
+        $visite = DB::transaction(function () use ($duJour, $nouvelle, $donnees, $uuid, $ruche, $user) {
+            if ($duJour) {
+                $duJour->fill(VisiteFields::completer($duJour, $nouvelle));
+                $duJour->uuids_fusionnes = trim($duJour->uuids_fusionnes.','.$uuid, ',');
+                $duJour->save();
+                $visite = $duJour;
+            } else {
+                $visite = new Visite($nouvelle);
+                $visite->forceFill([
+                    'client_uuid' => $uuid,
+                    'ruche_id' => $ruche->id,
+                    'user_id' => $user->id,
+                    'team_id' => $user->current_team_id,
+                ])->save();
+            }
+
+            // Seules les tâches de cette ruche ou de son rucher, encore à faire, sont soldées.
             Tache::where('team_id', $user->current_team_id)
                 ->whereIn('id', $donnees['taches_faites'] ?? [])
+                ->where('statut', 'a_faire')
+                ->where(fn ($q) => $q->where('ruche_id', $ruche->id)->orWhere(fn ($r) => $r->whereNull('ruche_id')->where('rucher_id', $ruche->rucher_id)))
                 ->update(['statut' => 'terminee', 'date_realisee' => $visite->date_visite->toDateString()]);
+
+            return $visite;
         });
 
-        dispatch(fn () => WeatherService::completeVisite($visite))->afterResponse();
+        if (! $duJour) {
+            dispatch(fn () => WeatherService::completeVisite($visite))->afterResponse();
+        }
 
-        return ['client_uuid' => $uuid, 'statut' => 'recue', 'id' => $visite->id];
+        return ['client_uuid' => $uuid, 'statut' => $duJour ? 'completee' : 'recue', 'id' => $visite->id];
     }
 
     public function note(Request $request, string $uuid)
@@ -111,7 +134,9 @@ class TerrainController extends Controller
             'duree' => ['nullable', 'integer', 'min:0', 'max:3600'],
         ]);
 
-        $visite = Visite::where('team_id', $request->user()->current_team_id)->where('client_uuid', $uuid)->firstOrFail();
+        $visite = Visite::where('team_id', $request->user()->current_team_id)
+            ->where(fn ($q) => $q->where('client_uuid', $uuid)->orWhere('uuids_fusionnes', 'like', '%'.$uuid.'%'))
+            ->firstOrFail();
         abort_unless($visite->ruche, 404);
         $this->authorizeRuche($visite->ruche, 'update');
 

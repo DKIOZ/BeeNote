@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Visite;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -25,16 +26,19 @@ class WeatherService
         $hour = $visite->heure_debut ? (int) substr((string) $visite->heure_debut, 0, 2) : 12;
 
         try {
-            $response = Http::timeout(5)->get('https://api.open-meteo.com/v1/forecast', [
-                'latitude' => (float) $rucher->latitude,
-                'longitude' => (float) $rucher->longitude,
-                'hourly' => 'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code',
-                'timezone' => 'Europe/Paris',
-                'start_date' => $date,
-                'end_date' => $date,
-            ]);
+            // Une seule question par rucher et par jour, quel que soit le nombre de visites.
+            $hourly = Cache::remember("meteo:{$rucher->id}:{$date}", now()->addDay(), function () use ($rucher, $date) {
+                $response = Http::timeout(5)->get('https://api.open-meteo.com/v1/forecast', [
+                    'latitude' => (float) $rucher->latitude,
+                    'longitude' => (float) $rucher->longitude,
+                    'hourly' => 'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code',
+                    'timezone' => 'Europe/Paris',
+                    'start_date' => $date,
+                    'end_date' => $date,
+                ]);
 
-            $hourly = $response->successful() ? $response->json('hourly') : null;
+                return $response->successful() ? $response->json('hourly') : null;
+            });
 
             if (! isset($hourly['temperature_2m'][$hour], $hourly['weather_code'][$hour])) {
                 return;

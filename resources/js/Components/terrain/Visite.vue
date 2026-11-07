@@ -4,7 +4,7 @@ import { usePage } from '@inertiajs/vue3';
 import ConfirmSheet from '@/Components/ConfirmSheet.vue';
 import Icon from '@/Components/Icon.vue';
 import VoixProbleme from '@/Components/terrain/VoixProbleme.vue';
-import { ACTIONS, FAMILLES, PROCHAINES, dateFr } from '@/terrain/fields.js';
+import { ACTIONS, FAMILLES, PROCHAINES, compterNotes, dateFr } from '@/terrain/fields.js';
 import { useTerrain } from '@/terrain/useTerrain.js';
 
 const page = usePage();
@@ -22,15 +22,7 @@ const voixActive = computed(() => {
     }
 });
 
-const TOTAL = 9;
-const nbNotes = computed(() => {
-    const champs = FAMILLES.flatMap((f) => f.groupes.map((g) => g.id));
-    let total = champs.filter((c) => valeurs.value[c]).length;
-    if (ACTIONS.some((a) => valeurs.value[a.id])) total += 1;
-    if (valeurs.value.prochaine_visite_prevue) total += 1;
-
-    return total;
-});
+const nbNotes = computed(() => compterNotes(valeurs.value));
 
 const enTournee = computed(() => ruchesDuRucher.value.filter((r) => r.etat !== 'hors'));
 const position = computed(() => enTournee.value.findIndex((r) => r.id === state.visite?.ruche_id) + 1);
@@ -72,7 +64,7 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
             <header class="-ml-2 flex items-center gap-2">
                 <button type="button" aria-label="Quitter la visite" class="flex h-12 w-12 flex-none items-center justify-center" @click="quitter = true"><Icon nom="retour" /></button>
                 <div class="min-w-0 flex-1">
-                    <h1 class="bn-title text-[28px] leading-tight">{{ ruche?.nom ?? 'Ruche' }}</h1>
+                    <h1 class="bn-title text-[28px] leading-tight">{{ ruche?.nom ?? state.visite.nom ?? 'Ruche' }}</h1>
                     <p class="text-sage">
                         <template v-if="state.visite.apres_coup">{{ dateFr(state.visite.date_visite) }}</template>
                         <template v-else-if="position">Ruche {{ position }} sur {{ enTournee.length }} de la tournée</template>
@@ -94,10 +86,10 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
                 </div>
             </div>
 
-            <div role="img" :aria-label="`${nbNotes} sur ${TOTAL} notés`" class="mt-3 flex gap-0.5">
-                <svg v-for="n in TOTAL" :key="n" aria-hidden="true" width="32" height="35" viewBox="0 0 48 52"><path d="M24 4l19 11v22L24 48 5 37V15z" class="transition-colors duration-300" :fill="n <= nbNotes ? '#FFB81C' : 'transparent'" :stroke="n <= nbNotes ? '#FFB81C' : '#C9D8D0'" stroke-width="4" stroke-linejoin="round" /></svg>
-            </div>
+            <p class="mt-3 font-semibold text-sage">{{ nbNotes ? `${nbNotes} ${nbNotes > 1 ? 'points notés' : 'point noté'}` : 'Rien de noté pour l\'instant' }}</p>
         </section>
+
+        <p v-if="state.visite.complement" class="mx-4 mt-3 rounded-2xl bg-cream p-3 font-semibold text-cream-ink lg:mx-0">Déjà visitée aujourd'hui : ce que vous notez s'ajoute à la visite de ce matin.</p>
 
         <section v-if="voix.echecs >= 2 && voix.ecoute" class="mx-4 mt-3 rounded-card bg-peach p-3.5 lg:mx-0">
             <p class="mb-2.5 font-bold text-rust">La voix passe mal ici</p>
@@ -115,7 +107,7 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
                 <div class="flex flex-col gap-3.5">
                     <fieldset v-for="groupe in famille.groupes" :key="groupe.id" :aria-labelledby="`g-${groupe.id}`" class="m-0 border-0 p-0">
                         <div class="mb-1 flex min-h-[28px] items-center justify-between">
-                            <span :id="`g-${groupe.id}`" class="text-sm font-semibold text-muted">{{ groupe.label }}</span>
+                            <span :id="`g-${groupe.id}`" class="font-semibold text-ink">{{ groupe.label }}<span v-if="groupe.aide" class="block text-sm font-normal text-muted">{{ groupe.aide }}</span></span>
                             <button v-if="valeurs[groupe.id]" type="button" class="-my-2 min-h-[44px] min-w-[76px] font-semibold text-muted underline" @click="effacerGroupe([groupe.id])">Effacer</button>
                             <span v-else class="text-muted">Pas noté</span>
                         </div>
@@ -176,7 +168,7 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
                 <p v-if="voixActive && (voix.ecoute || voix.echo)" aria-hidden="true" class="mb-2 flex items-center gap-2 text-sm font-semibold" :class="statut.alerte ? 'text-rust' : 'text-forest'">
                     <Icon v-if="voix.ecoute" nom="micro" :size="16" />
                     <span class="min-w-0 flex-1 truncate">{{ statut.titre }} · {{ statut.texte }}</span>
-                    <span class="flex-none text-muted">{{ nbNotes }} {{ nbNotes > 1 ? 'notés' : 'noté' }}</span>
+                    <span class="flex-none text-muted">{{ nbNotes }} {{ nbNotes > 1 ? 'points' : 'point' }}</span>
                 </p>
                 <button type="button" class="bn-btn w-full lg:w-full" @click="aller('recap')">Ruche terminée</button>
             </div>

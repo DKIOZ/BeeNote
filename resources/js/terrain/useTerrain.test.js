@@ -29,7 +29,8 @@ const ruche = (id, numero, extra = {}) => ({
     statut: 'active',
     qr_token: null,
     etat: 'todo',
-    prochaine_visite: null,
+    // Par défaut, la ruche est à visiter aujourd'hui.
+    prochaine_visite: AUJOURDHUI,
     derniere_visite: { date: AVANT_HIER, resume: '' },
     taches: [],
     ...extra,
@@ -541,5 +542,75 @@ describe('état des ruches', () => {
         terrain.choisirRucher(1);
 
         expect(terrain.ruchesDuRucher.value[0].etat).toBe('late');
+    });
+});
+
+describe('panel 2 : tour 1', () => {
+    it('retoucher une ruche faite rouvre sa visite encore sur le téléphone, sans doublon', async () => {
+        const { terrain } = await charger({ enLigne: false });
+        terrain.choisirRucher(1);
+        await terrain.commencer(11);
+        terrain.noter(CALME);
+        await terrain.valider();
+        expect(terrain.state.queue).toHaveLength(1);
+
+        await terrain.abandonnerVisite();
+        await terrain.commencer(11);
+
+        expect(terrain.state.visite.valeurs.humeur_colonie).toBe('calme');
+        expect(terrain.state.queue).toHaveLength(0);
+    });
+
+    it('une ruche déjà envoyée aujourd\'hui se complète, annoncé à l\'écran', async () => {
+        const visitee = { ruchers: [{ id: 1, nom: 'A', ruches: [ruche(11, 1, { derniere_visite: { date: AUJOURDHUI, resume: '' } }), ruche(12, 2)], taches: [] }] };
+        const { terrain } = await charger({ local: visitee, reseau: visitee, enLigne: false });
+        terrain.choisirRucher(1);
+
+        await terrain.commencer(11);
+
+        expect(terrain.state.visite.complement).toBe(true);
+    });
+
+    it('« c\'est bon » ouvre la ruche annoncée par le bouton', async () => {
+        const { terrain } = await charger({ enLigne: false });
+        terrain.choisirRucher(1);
+        await terrain.commencer(12);
+        const annoncee = terrain.rucheApres.value.id;
+
+        await terrain.valider();
+
+        expect(terrain.state.visite.ruche_id).toBe(annoncee);
+        expect(annoncee).toBe(13);
+    });
+
+    it('une visite encore dans la file compte le lendemain, hors ligne', async () => {
+        const { terrain, store } = await charger({ enLigne: false });
+        await store.updateItem('queue', () => [{ client_uuid: 'x', ruche_id: 11, date_visite: AVANT_HIER, prochaine_visite_prevue: null }]);
+        const relance = await charger({ enLigne: false });
+        relance.terrain.choisirRucher(1);
+
+        expect(relance.terrain.ruchesDuRucher.value.find((r) => r.id === 11).etat).toBe('next');
+        expect(terrain).toBeTruthy();
+    });
+
+    it('la déconnexion garde les visites mises de côté pour un autre compte', async () => {
+        const { store } = await charger({ enLigne: false });
+        await store.setItem('compte:7', { file: [{ client_uuid: 'abc' }], brouillon: null });
+        await store.setItem('note:abc', { duree: 3 });
+        await store.setItem('queue', [{ client_uuid: 'moi' }]);
+
+        await store.clearAll();
+
+        expect(await store.getItem('compte:7')).toBeTruthy();
+        expect(await store.getItem('note:abc')).toBeTruthy();
+        expect(await store.getItem('queue')).toBeUndefined();
+    });
+
+    it('attend les données fraîches pour un rucher tout juste créé', async () => {
+        const nouveau = { ruchers: [...DONNEES.ruchers, { id: 2, nom: 'Neuf', ruches: [ruche(21, 4)], taches: [] }] };
+        const { terrain } = await charger({ url: '/terrain?rucher=2', reseau: nouveau });
+
+        expect(terrain.state.vue).toBe('tournee');
+        expect(terrain.state.rucherId).toBe(2);
     });
 });

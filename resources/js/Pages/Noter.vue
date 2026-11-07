@@ -1,11 +1,13 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BackBar from '@/Components/BackBar.vue';
+import { dateCourte } from '@/terrain/fields.js';
 import Field from '@/Components/Field.vue';
 
 const props = defineProps({
+    visite: { type: Object, default: null },
     type: String,
     rucheId: Number,
     visiteId: Number,
@@ -21,10 +23,14 @@ const rucherDeLaRuche = computed(() => props.ruchers.find((r) => r.ruches.some((
 const rucherChoisi = ref(rucherDeLaRuche.value?.id ?? null);
 const ruches = computed(() => props.ruchers.find((r) => r.id === rucherChoisi.value)?.ruches ?? []);
 
+// Les ruches mortes ou inactives ne reçoivent ni traitement ni déplacement groupé.
+const actives = computed(() => ruches.value.filter((h) => !h.statut || h.statut === 'active'));
+
 const form = useForm({
     ruche_ids: props.rucheId ? [props.rucheId] : [],
     visite_id: props.visiteId,
-    date_traitement: props.aujourdhui,
+    // Compléter un traitement : la date est celle de la visite, pas celle du soir.
+    date_traitement: props.visite?.date ?? props.aujourdhui,
     type_traitement: 'varroa',
     produit_utilise: '',
     dosage: '',
@@ -46,10 +52,18 @@ const bascule = (id) => {
         liste.splice(position, 1);
     }
 };
-const toutesCochees = computed(() => ruches.value.length > 0 && ruches.value.every((h) => form.ruche_ids.includes(h.id)));
+const toutesCochees = computed(() => actives.value.length > 0 && actives.value.every((h) => form.ruche_ids.includes(h.id)));
 const basculeToutes = () => {
-    form.ruche_ids = toutesCochees.value ? [] : ruches.value.map((h) => h.id);
+    form.ruche_ids = toutesCochees.value ? [] : actives.value.map((h) => h.id);
 };
+
+// Changer de rucher repart d'une sélection vide : pas de ruche cochée hors de vue.
+watch(rucherChoisi, (id) => {
+    form.ruche_ids = [];
+    if (form.vers_rucher_id === id) {
+        form.vers_rucher_id = props.ruchers.find((r) => r.id !== id)?.id ?? null;
+    }
+});
 
 const nombre = computed(() => form.ruche_ids.length);
 const verbe = computed(() => ({ traitement: 'Noter le traitement', recolte: 'Noter la récolte', deplacement: 'Déplacer' }[type.value]));
@@ -73,7 +87,7 @@ function enregistrer() {
 
 <template>
     <AppLayout title="Noter" sans-nav>
-        <BackBar :href="retour" titre="Noter" />
+        <BackBar :href="retour" :titre="visite && type === 'traitement' ? `Compléter le traitement du ${dateCourte(visite.date)}` : 'Noter'" :sous="visite?.ruche" />
 
         <div class="max-w-2xl">
             <div role="group" aria-label="Type de saisie" class="mx-4 grid grid-cols-3 gap-1 rounded-[18px] bg-soft p-1 lg:mx-0">

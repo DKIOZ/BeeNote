@@ -14,14 +14,14 @@ const valeurs = computed(() => state.visite?.valeurs ?? {});
             <button type="button" aria-label="Retour à la visite" class="flex h-12 w-12 flex-none items-center justify-center text-forest" @click="aller('visite')"><Icon nom="retour" /></button>
             <div>
                 <h1 class="bn-title text-[28px] leading-tight">Plus de détails</h1>
-                <p class="bn-sub">{{ ruche?.nom }} · facultatif · couvain et teigne sans la voix</p>
+                <p class="bn-sub">{{ ruche?.nom }} · facultatif</p>
             </div>
         </header>
 
         <div class="flex flex-col gap-4 px-4 pt-3 lg:px-0">
             <fieldset v-for="groupe in DETAILS" :key="groupe.id" :aria-labelledby="`d-${groupe.id}`" class="m-0 border-0 p-0">
                 <div class="mb-1 flex min-h-[28px] items-center justify-between">
-                    <span :id="`d-${groupe.id}`" class="text-sm font-semibold text-muted">{{ groupe.label }}</span>
+                    <span :id="`d-${groupe.id}`" class="font-semibold text-ink">{{ groupe.label }}<span v-if="groupe.aide" class="block text-sm font-normal text-muted">{{ groupe.aide }}</span></span>
                     <button v-if="valeurs[groupe.id]" type="button" class="-my-2 min-h-[44px] min-w-[76px] text-sm font-semibold text-muted underline" @click="effacerGroupe([groupe.id])">Effacer</button>
                     <span v-else class="text-sm text-muted">Pas noté</span>
                 </div>

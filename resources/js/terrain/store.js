@@ -72,8 +72,24 @@ export function updateItem(key, changer) {
     }));
 }
 
+/**
+ * Efface ce que ce compte a laissé sur le téléphone. Les visites mises de côté pour un autre
+ * compte, et leurs notes vocales, restent : elles repartiront quand il se reconnectera.
+ */
 export async function clearAll() {
-    await run('readwrite', (store) => store.clear());
+    const gardees = new Set();
+    const cles = await run('readonly', (store) => store.getAllKeys());
+
+    for (const cle of cles.filter((c) => String(c).startsWith('compte:'))) {
+        gardees.add(cle);
+        const mis = await getItem(cle);
+        [...(mis?.file ?? []), mis?.brouillon].filter(Boolean).forEach((v) => gardees.add(`note:${v.client_uuid}`));
+    }
+
+    await run('readwrite', (store) => {
+        cles.filter((c) => !gardees.has(c)).forEach((c) => store.delete(c));
+    });
+
     if ('caches' in window) {
         await caches.delete('bn-pages');
     }

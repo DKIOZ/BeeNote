@@ -21,7 +21,7 @@ const lien = (ligne) => (ligne.type === 'visite' ? route('visites.show', ligne.i
         <header class="flex flex-wrap items-end justify-between gap-3 px-5 pb-3.5 pt-5 lg:px-0 lg:pt-0">
             <div>
                 <h1 class="bn-title text-4xl">Registre</h1>
-                <p class="mt-1 text-muted">12 derniers mois · tous les ruchers</p>
+                <p class="mt-1 text-muted">Le registre d'élevage, à présenter en cas de contrôle sanitaire. 12 derniers mois, tous les ruchers.</p>
             </div>
             <Link v-if="props.lignes.length" :href="route('registre.export-form')" class="bn-btn lg:w-auto">Télécharger mon registre</Link>
         </header>

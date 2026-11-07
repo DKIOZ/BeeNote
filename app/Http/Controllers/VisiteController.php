@@ -28,7 +28,7 @@ class VisiteController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([...VisiteFields::rules(), 'ruche_id' => ['required', 'integer']]);
+        $data = $request->validate($this->rules());
         $ruche = Ruche::findOrFail($data['ruche_id']);
         $this->authorizeRuche($ruche, 'update');
 
@@ -60,7 +60,7 @@ class VisiteController extends Controller
     {
         $this->authorizeVisite($visite, 'update');
 
-        $data = $request->validate([...VisiteFields::rules(), 'ruche_id' => ['required', 'integer']]);
+        $data = $request->validate($this->rules());
         $ruche = Ruche::findOrFail($data['ruche_id']);
         $this->authorizeRuche($ruche, 'update');
 
@@ -91,10 +91,20 @@ class VisiteController extends Controller
         ]);
     }
 
+    // Au PC, la date est celle du jour ou d'avant : la tolérance d'un jour ne vaut que pour le téléphone.
+    private function rules(): array
+    {
+        return [
+            ...VisiteFields::rules(),
+            'date_visite' => ['required', 'date', 'before_or_equal:today', 'after:2000-01-01'],
+            'ruche_id' => ['required', 'integer'],
+        ];
+    }
+
     private function authorizeVisite(Visite $visite, string $ability = 'view'): void
     {
         abort_unless($visite->ruche, 404);
-        abort_unless($visite->team_id === request()->user()->current_team_id, 403);
+        abort_unless($visite->team_id === request()->user()->current_team_id, 404);
         $this->authorizeRuche($visite->ruche, $ability);
     }
 

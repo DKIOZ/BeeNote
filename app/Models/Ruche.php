@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Services\RucherOverview;
 use Illuminate\Support\Str;
 
 class Ruche extends Model
@@ -27,6 +28,14 @@ class Ruche extends Model
     {
         static::creating(function (Ruche $ruche) {
             $ruche->qr_token = Str::random(32);
+            $ruche->numero ??= $ruche->numeroLibre();
+        });
+
+        // Un nom qui porte un numéro le donne à la ruche : « Ruche 7 » se dit « ruche sept ».
+        static::updating(function (Ruche $ruche) {
+            if ($ruche->isDirty('nom') && ($numero = RucherOverview::numeroDuNom($ruche->nom))) {
+                $ruche->numero = $numero;
+            }
         });
     }
 
@@ -47,6 +56,21 @@ class Ruche extends Model
         foreach ([Visite::class, Traitement::class, Recolte::class] as $modele) {
             $modele::recalculerPourRuche($this->id);
         }
+    }
+
+    /**
+     * Le numéro du nom s'il est libre sur le compte, sinon le suivant.
+     */
+    public function numeroLibre(): int
+    {
+        $teamId = Rucher::withTrashed()->whereKey($this->rucher_id)->value('team_id');
+        $numero = RucherOverview::numeroDuNom((string) $this->nom);
+
+        if ($numero && ! self::where('numero', $numero)->whereHas('rucher', fn ($q) => $q->where('team_id', $teamId))->exists()) {
+            return $numero;
+        }
+
+        return RucherOverview::prochainNumero($teamId);
     }
 
     public function rucher()

@@ -62,6 +62,34 @@ class Visite extends Model
     }
 
     /**
+     * Ce que l'apiculteur doit garder à l'œil après cette visite.
+     */
+    public function alertes(): array
+    {
+        $signes = [
+            'estimation_population' => ['faible' => 'colonie faible'],
+            'reine_vue' => ['non_ok' => 'reine pas vue'],
+            'ponte_observee' => ['non_ok' => 'pas de ponte'],
+            'cellules_royales' => ['ok' => 'cellules royales'],
+            'reserves_miel' => ['insuffisantes' => 'réserves faibles'],
+            'varroas_observes' => ['ok' => 'varroas'],
+            'humeur_colonie' => ['agressive' => 'agressive', 'tres_agressive' => 'très agressive'],
+            'frelons_asiatiques' => ['nombreux' => 'beaucoup de frelons'],
+            'fausse_teigne' => ['ok' => 'teigne'],
+            'surface_couvain' => ['faible' => 'couvain faible'],
+        ];
+
+        $alertes = [];
+        foreach ($signes as $champ => $valeurs) {
+            if (isset($valeurs[$this->getAttribute($champ)])) {
+                $alertes[] = $valeurs[$this->getAttribute($champ)];
+            }
+        }
+
+        return $alertes;
+    }
+
+    /**
      * Résumé lisible d'une visite, aussi repris dans le registre.
      */
     public function resume(): string
@@ -78,7 +106,6 @@ class Visite extends Model
             'surface_couvain' => ['faible' => 'Couvain faible', 'normale' => 'Couvain normal', 'importante' => 'Couvain fort'],
             'frelons_asiatiques' => ['absents' => 'Pas de frelons', 'quelques_uns' => 'Quelques frelons', 'nombreux' => 'Beaucoup de frelons'],
             'fausse_teigne' => ['ok' => 'Teigne présente', 'non_ok' => 'Pas de teigne'],
-            'type_nourrissement' => ['sirop' => 'Sirop', 'candi' => 'Candi', 'pate' => 'Pâte'],
         ];
 
         $parts = [];
@@ -89,8 +116,14 @@ class Visite extends Model
             }
         }
 
+        // « Nourri (sirop) » plutôt que deux mots qui disent la même chose.
+        $nourriture = ['sirop' => 'sirop', 'candi' => 'candi', 'pate' => 'pâte'][$this->type_nourrissement] ?? null;
+        if ($nourriture && ! $this->nourrissement_effectue) {
+            $parts[] = 'Nourri ('.$nourriture.')';
+        }
+
         foreach ([
-            'nourrissement_effectue' => 'Nourri',
+            'nourrissement_effectue' => $nourriture ? 'Nourri ('.$nourriture.')' : 'Nourri',
             'traitement_applique' => 'Traité',
             'hausse_ajoutee' => 'Hausse posée',
             'hausse_retiree' => 'Hausse enlevée',
@@ -100,6 +133,6 @@ class Visite extends Model
             }
         }
 
-        return $parts === [] ? 'RAS, rien à signaler' : implode(', ', $parts);
+        return $parts === [] ? 'Rien à signaler' : implode(', ', $parts);
     }
 }

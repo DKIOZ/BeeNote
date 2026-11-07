@@ -220,12 +220,12 @@ describe('envoi depuis le terrain', function () {
 });
 
 describe('état des ruches', function () {
-    it('donne à une ruche le numéro de son nom, même après un déplacement', function () {
+    it('donne à une ruche le numéro de son nom, et un numéro libre du compte sinon', function () {
         $user = compte();
         $rucher = rucherAvec($user, ['Ruche 1', 'Ruche 3', 'La bleue']);
 
         expect(RucherOverview::ruchers($user)->first()['ruches']->pluck('numero', 'nom')->all())
-            ->toEqual(['Ruche 1' => 1, 'Ruche 3' => 3, 'La bleue' => 2]);
+            ->toEqual(['Ruche 1' => 1, 'Ruche 3' => 3, 'La bleue' => 4]);
     });
 
     it('compte une ruche jamais visitée comme à visiter, pas une ruche morte', function () {
@@ -291,7 +291,7 @@ describe('panel : logique claire', function () {
 
     it('écrit « RAS » pour une visite où rien n\'a été noté', function () {
         $user = compte();
-        expect(visiteDe(rucherAvec($user)->ruches->first(), $user)->resume())->toBe('RAS, rien à signaler');
+        expect(visiteDe(rucherAvec($user)->ruches->first(), $user)->resume())->toBe('Rien à signaler');
     });
 
     it('donne une colonne par information dans le CSV', function () {
@@ -442,7 +442,7 @@ describe('contre-recette', function () {
         expect($recente->rucher_id)->toBe($b->id);
     });
 
-    it('annule d\'abord le dernier déplacement enregistré, quelle que soit sa date', function () {
+    it('refuse un déplacement daté avant le précédent, et n\'annule que le dernier', function () {
         $user = compte();
         $a = rucherAvec($user, ['Ruche 1'], 'A');
         $b = rucherAvec($user, [], 'B');
@@ -451,7 +451,11 @@ describe('contre-recette', function () {
         $this->actingAs($user);
         $this->post(route('noter.store', 'deplacement'), ['ruche_ids' => [$ruche->id], 'vers_rucher_id' => $b->id, 'date_deplacement' => now()->subDay()->toDateString()]);
         $premier = RucheEmplacement::orderBy('id')->first();
-        $this->post(route('noter.store', 'deplacement'), ['ruche_ids' => [$ruche->id], 'vers_rucher_id' => $c->id, 'date_deplacement' => now()->subDays(5)->toDateString()]);
+
+        $this->post(route('noter.store', 'deplacement'), ['ruche_ids' => [$ruche->id], 'vers_rucher_id' => $c->id, 'date_deplacement' => now()->subDays(5)->toDateString()])
+            ->assertSessionHasErrors('date_deplacement');
+        $this->post(route('noter.store', 'deplacement'), ['ruche_ids' => [$ruche->id], 'vers_rucher_id' => $c->id, 'date_deplacement' => now()->toDateString()])
+            ->assertSessionHasNoErrors();
 
         $this->delete(route('fiches.destroy', ['deplacement', $premier->id]))->assertSessionHas('erreur');
 
@@ -617,7 +621,7 @@ describe('registre', function () {
             'type_nourrissement' => 'sirop',
         ]);
 
-        expect($visite->resume())->toContain('Beaucoup de frelons', 'Couvain faible', 'Sirop');
+        expect($visite->resume())->toContain('Beaucoup de frelons', 'Couvain faible', 'Nourri (sirop)');
     });
 
     it('garde le rucher de l\'époque après un déplacement', function () {
@@ -712,5 +716,133 @@ describe('registre', function () {
 
     it('répond 404 à un identifiant de fiche non numérique', function () {
         $this->actingAs(compte())->get('/fiches/traitement/abc')->assertNotFound();
+    });
+});
+
+describe('panel 2 : tour 1', function () {
+    $envoi = fn (Ruche $ruche, array $valeurs = []) => ['client_uuid' => (string) Str::uuid(), 'ruche_id' => $ruche->id, 'date_visite' => now()->toDateString(), ...$valeurs];
+
+    it('complète la visite du jour au lieu d\'en créer une seconde, sans effacer la prochaine visite', function () use ($envoi) {
+        $user = compte();
+        $ruche = rucherAvec($user)->ruches->first();
+        $premier = $envoi($ruche, ['humeur_colonie' => 'calme', 'prochaine_visite_prevue' => now()->addWeek()->toDateString()]);
+        $second = $envoi($ruche, ['hausse_ajoutee' => true]);
+
+        $this->actingAs($user)->postJson(route('terrain.sync'), ['visites' => [$premier]])->assertOk();
+        $this->postJson(route('terrain.sync'), ['visites' => [$second]])->assertJsonPath('resultats.0.statut', 'completee');
+        $this->postJson(route('terrain.sync'), ['visites' => [$second]])->assertJsonPath('resultats.0.statut', 'deja_recue');
+
+        expect(Visite::count())->toBe(1);
+        $visite = Visite::first();
+        expect($visite->humeur_colonie)->toBe('calme');
+        expect($visite->hausse_ajoutee)->toBeTrue();
+        expect($visite->prochaine_visite_prevue->toDateString())->toBe(now()->addWeek()->toDateString());
+
+        $this->postJson(route('terrain.note', $second['client_uuid']), ['note' => fichierSon("\x1A\x45\xDF\xA3\x9F\x42\x86\x81\x01\x42\xF7\x81\x01\x42\xF2\x81\x04\x42\xF3\x81\x08\x42\x82\x84webm")])->assertOk();
+        expect($visite->fresh()->note_audio_path)->not->toBeNull();
+    });
+
+    it('ne solde que les tâches de la ruche visitée ou de son rucher', function () use ($envoi) {
+        $user = compte();
+        $rucher = rucherAvec($user, ['Ruche 1', 'Ruche 2']);
+        $deLaRuche = tacheDe($user, $rucher->ruches[0]);
+        $duRucher = tacheDe($user, $rucher->ruches[0]);
+        $duRucher->forceFill(['ruche_id' => null])->save();
+        $autre = tacheDe($user, $rucher->ruches[1]);
+
+        $this->actingAs($user)->postJson(route('terrain.sync'), ['visites' => [$envoi($rucher->ruches[0], ['taches_faites' => [$deLaRuche->id, $duRucher->id, $autre->id]])]]);
+
+        expect($deLaRuche->fresh()->statut)->toBe('terminee');
+        expect($duRucher->fresh()->statut)->toBe('terminee');
+        expect($autre->fresh()->statut)->toBe('a_faire');
+    });
+
+    it('garde le numéro d\'une ruche quand une autre arrive dans le rucher', function () {
+        $user = compte();
+        $rucher = rucherAvec($user, ['La grosse']);
+        $numero = $rucher->ruches[0]->fresh()->numero;
+
+        // Le numéro 1 est celui de « La grosse » : il n'est pas donné à une autre.
+        $this->actingAs($user)->post(route('ruches.store', $rucher), ['nom' => 'Ruche 1'])->assertSessionHasErrors('nom');
+        $this->post(route('ruches.store', $rucher), ['nom' => 'Ruche 2'])->assertSessionHasNoErrors();
+
+        expect($rucher->ruches[0]->fresh()->numero)->toBe($numero);
+        expect(RucherOverview::ruchers($user)->first()['ruches']->pluck('numero')->unique())->toHaveCount(2);
+    });
+
+    it('refuse un nom dont le numéro est déjà pris', function () {
+        $user = compte();
+        $a = rucherAvec($user, ['Ruche 3'], 'A');
+        $b = rucherAvec($user, [], 'B');
+
+        $this->actingAs($user)->post(route('ruches.store', $b), ['nom' => 'Colonie 3'])->assertSessionHasErrors('nom');
+    });
+
+    it('refuse de remettre une ruche dont le nom a été repris', function () {
+        $user = compte();
+        $rucher = rucherAvec($user, ['Ruche 1']);
+        $ancienne = $rucher->ruches[0];
+        $ancienne->delete();
+        $this->actingAs($user)->post(route('ruches.store', $rucher), ['nom' => 'Ruche 1']);
+
+        $this->post(route('corbeille.restore', ['ruche', $ancienne->id]))->assertSessionHas('erreur');
+
+        expect($ancienne->fresh()->trashed())->toBeTrue();
+    });
+
+    it('éteint « Compléter le traitement » par la visite liée, même à une autre date', function () {
+        $user = compte();
+        $ruche = rucherAvec($user)->ruches->first();
+        $visite = visiteDe($ruche, $user, ['traitement_applique' => true, 'date_visite' => now()->subDays(3)->toDateString()]);
+        $this->actingAs($user)->get(route('noter.create', ['type' => 'traitement', 'ruche' => $ruche->id, 'visite' => $visite->id]))
+            ->assertInertia(fn ($page) => $page->where('visite.date', now()->subDays(3)->toDateString()));
+
+        $this->post(route('noter.store', 'traitement'), ['ruche_ids' => [$ruche->id], 'visite_id' => $visite->id, 'date_traitement' => now()->toDateString(), 'type_traitement' => 'varroa', 'produit_utilise' => 'Apivar']);
+
+        expect(RucherOverview::aCompleter($user))->toHaveCount(0);
+        expect(RegistreService::pourEquipe($user->current_team_id)->firstWhere('type', 'visite')['detail'])->not->toContain('à compléter');
+    });
+
+    it('signale une ruche à surveiller même quand tout est à jour', function () {
+        $user = compte();
+        $ruche = rucherAvec($user)->ruches->first();
+        visiteDe($ruche, $user, ['estimation_population' => 'faible', 'varroas_observes' => 'ok']);
+
+        $resultat = RucherOverview::ruchers($user)->first();
+
+        expect($resultat['a_visiter'])->toBe(0);
+        expect($resultat['a_surveiller'])->toBe(1);
+        expect($resultat['ruches'][0]['alertes'])->toBe(['colonie faible', 'varroas']);
+    });
+
+    it('oriente vers le tableur un PDF trop long, au lieu de tomber', function () {
+        $user = compte();
+        $ruche = rucherAvec($user)->ruches->first();
+        $lignes = collect(range(1, App\Http\Controllers\RegistreController::PDF_MAX + 1))->map(fn ($n) => [
+            'ruche_id' => $ruche->id, 'team_id' => $user->current_team_id, 'user_id' => $user->id,
+            'date_visite' => now()->subDays($n % 300)->toDateString(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        foreach ($lignes->chunk(200) as $paquet) {
+            Visite::insert($paquet->all());
+        }
+
+        $this->actingAs($user)->from('/registre/telecharger')
+            ->get('/registre/fichier?format=pdf&depuis=2000-01-01&jusqu=2100-01-01')
+            ->assertSessionHasErrors('format');
+    });
+
+    it('cache qu\'un rucher d\'une autre équipe existe', function () {
+        $alice = compte();
+        $rucher = rucherAvec($alice);
+
+        $this->actingAs(compte())->get(route('ruchers.show', $rucher))->assertNotFound();
+    });
+
+    it('n\'accepte pas une visite datée de demain depuis le PC', function () {
+        $user = compte();
+        $ruche = rucherAvec($user)->ruches->first();
+
+        $this->actingAs($user)->post(route('visites.store'), ['ruche_id' => $ruche->id, 'date_visite' => now()->addDay()->toDateString()])
+            ->assertSessionHasErrors('date_visite');
     });
 });

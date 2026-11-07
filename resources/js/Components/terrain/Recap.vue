@@ -1,20 +1,24 @@
 <script setup>
 import { computed } from 'vue';
-import { resumeVisite, TOUS_LES_GROUPES } from '@/terrain/fields.js';
+import { ajouterJours, dateCourte, resumeVisite, TOUS_LES_GROUPES } from '@/terrain/fields.js';
 import { useTerrain } from '@/terrain/useTerrain.js';
 
 const { state, ruche, rucheApres, valider, basculerTache, corriger, abandonnerVisite } = useTerrain();
 
 const valeurs = computed(() => state.visite?.valeurs ?? {});
 const lignes = computed(() => resumeVisite(valeurs.value));
-const manquants = computed(() => ['reine_vue', 'ponte_observee', 'reserves_miel', 'varroas_observes', 'humeur_colonie']
+const manquants = computed(() => ['reine_vue', 'ponte_observee', 'cellules_royales', 'reserves_miel', 'varroas_observes', 'humeur_colonie']
     .filter((champ) => !valeurs.value[champ])
     .map((champ) => TOUS_LES_GROUPES.find((g) => g.id === champ).label.toLowerCase()));
 
 const tacheReine = computed(() => (valeurs.value.reine_vue === 'ok'
     ? ruche.value?.taches?.find((t) => /reine/i.test(t.titre))
     : null));
-const autresTaches = computed(() => (ruche.value?.taches ?? []).filter((t) => t.id !== tacheReine.value?.id));
+// Les tâches de la ruche, puis celles de tout le rucher : les deux se cochent ici.
+const tachesRucher = computed(() => state.donnees?.ruchers.find((r) => r.ruches.some((h) => h.id === state.visite?.ruche_id))?.taches ?? []);
+const autresTaches = computed(() => [...(ruche.value?.taches ?? []).filter((t) => t.id !== tacheReine.value?.id), ...tachesRucher.value.map((t) => ({ ...t, titre: `${t.titre} (tout le rucher)` }))]);
+// Sans date choisie, la ruche reviendra d'elle-même : on le dit au lieu de le laisser deviner.
+const retour = computed(() => (valeurs.value.prochaine_visite_prevue ? null : ajouterJours(state.visite?.date_visite, 21)));
 const faite = (tache) => state.visite?.taches_faites.includes(tache.id);
 const bonneReponse = () => {
     if (tacheReine.value && !faite(tacheReine.value)) {
@@ -60,6 +64,7 @@ const vide = computed(() => !lignes.value.length && !state.visite?.note && !stat
             <p class="mt-1 text-muted">Si tout allait bien, enregistrez « rien à signaler ». Sinon, ne l'enregistrez pas.</p>
         </div>
 
+        <p v-if="retour" class="mx-5 mt-2 text-muted lg:mx-1">Sans prochaine visite choisie, elle reviendra à visiter vers le {{ dateCourte(retour) }}.</p>
         <p v-if="state.visite.note" class="mx-5 mt-2 font-semibold text-cream-ink lg:mx-1">Note vocale jointe · {{ state.visite.note.duree }} s</p>
         <p v-if="manquants.length" class="mx-5 mt-2 text-sm text-muted lg:mx-1"><strong class="text-ink">Pas noté :</strong> {{ manquants.join(', ') }}</p>
 

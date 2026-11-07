@@ -2,11 +2,12 @@
 import { computed } from 'vue';
 import Comb from '@/Components/Comb.vue';
 import Icon from '@/Components/Icon.vue';
+import { compterNotes } from '@/terrain/fields.js';
 import { useTerrain } from '@/terrain/useTerrain.js';
 
 const { state, ruche, enAttente, aller, choisirRucher, commencer } = useTerrain();
 const ruchers = computed(() => state.donnees?.ruchers ?? []);
-const notes = computed(() => Object.keys(state.visite?.valeurs ?? {}).filter((k) => !k.startsWith('_')).length);
+const notes = computed(() => compterNotes(state.visite?.valeurs));
 </script>
 
 <template>
@@ -16,7 +17,7 @@ const notes = computed(() => Object.keys(state.visite?.valeurs ?? {}).filter((k)
         <section v-if="state.visite && ruche" class="mt-3 rounded-card bg-forest p-4 text-white">
             <p class="text-sm font-semibold text-sage">Visite en cours</p>
             <h2 class="bn-title mt-0.5 text-[28px]">{{ ruche.nom }}</h2>
-            <p class="mb-3.5 text-sage">{{ notes }} {{ notes > 1 ? 'choses notées' : 'chose notée' }}</p>
+            <p class="mb-3.5 text-sage">{{ notes }} {{ notes > 1 ? 'points notés' : 'point noté' }}</p>
             <button type="button" class="bn-btn-flat w-full lg:w-full" @click="commencer(state.visite.ruche_id)">Reprendre</button>
         </section>
 
@@ -48,9 +49,9 @@ const notes = computed(() => Object.keys(state.visite?.valeurs ?? {}).filter((k)
                 </button>
             </div>
 
-            <div class="mt-3 grid grid-cols-2 gap-2 lg:hidden">
-                <button type="button" class="bn-btn-2" :disabled="!ruchers.length" @click="aller('scanner')">Scanner</button>
-                <button type="button" class="bn-btn-2" :disabled="!ruchers.length" @click="aller('datee')">Visite déjà faite</button>
+            <div v-if="ruchers.length" class="mt-3 grid grid-cols-2 gap-2 lg:hidden">
+                <button type="button" class="bn-btn-2" @click="aller('scanner')">Scanner un QR</button>
+                <button type="button" class="bn-btn-2" @click="aller('datee')">Visite déjà faite</button>
             </div>
             <a v-if="ruchers.length && state.enligne" href="/visites/create" class="bn-btn-2 mt-3 hidden lg:inline-flex lg:w-full">Noter une visite déjà faite</a>
         </section>

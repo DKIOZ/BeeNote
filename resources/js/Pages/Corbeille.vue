@@ -12,7 +12,7 @@ const remettre = (item) => router.post(route('corbeille.restore', [item.type, it
 <template>
     <AppLayout title="Corbeille" sans-nav>
         <BackBar :href="route('plus')" titre="Corbeille" />
-        <p class="mx-5 mb-3 text-muted lg:mx-0">Ce qui est ici ne figure plus au registre. Vous pouvez le remettre pendant {{ jours }} jours, ensuite il est supprimé pour de bon.</p>
+        <p class="mx-5 mb-3 text-muted lg:mx-0">Vous pouvez remettre ces éléments pendant {{ jours }} jours. Ensuite, visites et récoltes sont supprimées pour de bon. Les traitements et déplacements d'une ruche à la corbeille restent toujours au registre d'élevage.</p>
 
         <p v-if="!items.length" class="bn-card mx-4 p-5 text-muted lg:mx-0">La corbeille est vide.</p>
 

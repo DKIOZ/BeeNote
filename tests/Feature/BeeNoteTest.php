@@ -66,7 +66,7 @@ describe('isolation entre équipes', function () {
             route('visites.show', $visite),
             route('visites.note', $visite),
         ] as $url) {
-            $this->get($url)->assertForbidden();
+            $this->get($url)->assertNotFound();
         }
     });
 
@@ -79,18 +79,18 @@ describe('isolation entre équipes', function () {
 
         $this->actingAs($bob);
 
-        $this->put(route('ruchers.update', $rucher), ['nom' => 'Piraté'])->assertForbidden();
-        $this->delete(route('ruchers.destroy', $rucher))->assertForbidden();
-        $this->put(route('ruches.update', $ruche), ['nom' => 'Piraté'])->assertForbidden();
-        $this->delete(route('ruches.destroy', $ruche))->assertForbidden();
-        $this->delete(route('visites.destroy', $visite))->assertForbidden();
-        $this->post(route('visites.store'), ['ruche_id' => $ruche->id, 'date_visite' => now()->toDateString()])->assertForbidden();
+        $this->put(route('ruchers.update', $rucher), ['nom' => 'Piraté'])->assertNotFound();
+        $this->delete(route('ruchers.destroy', $rucher))->assertNotFound();
+        $this->put(route('ruches.update', $ruche), ['nom' => 'Piraté'])->assertNotFound();
+        $this->delete(route('ruches.destroy', $ruche))->assertNotFound();
+        $this->delete(route('visites.destroy', $visite))->assertNotFound();
+        $this->post(route('visites.store'), ['ruche_id' => $ruche->id, 'date_visite' => now()->toDateString()])->assertNotFound();
         $this->post(route('noter.store', 'traitement'), [
             'ruche_ids' => [$ruche->id],
             'date_traitement' => now()->toDateString(),
             'type_traitement' => 'varroa',
             'produit_utilise' => 'X',
-        ])->assertForbidden();
+        ])->assertNotFound();
 
         expect($rucher->fresh()->nom)->not->toBe('Piraté');
         expect(Traitement::count())->toBe(0);
@@ -145,7 +145,7 @@ describe('isolation entre équipes', function () {
 
         $alice->currentTeam->users()->detach($editeur);
 
-        $this->actingAs($editeur->fresh())->get(route('ruchers.show', $rucher))->assertForbidden();
+        $this->actingAs($editeur->fresh())->get(route('ruchers.show', $rucher))->assertNotFound();
     });
 });
 
@@ -351,7 +351,7 @@ describe('notes vocales', function () {
         $fichier = UploadedFile::fake()->create('note.webm', 100, 'audio/webm');
 
         $this->actingAs($bob)->post(route('terrain.note', $visite->client_uuid), ['note' => $fichier])->assertNotFound();
-        $this->actingAs($bob)->get(route('visites.note', $visite))->assertForbidden();
+        $this->actingAs($bob)->get(route('visites.note', $visite))->assertNotFound();
     });
 
     it('ne divulgue jamais le chemin du fichier', function () {
@@ -620,11 +620,11 @@ describe('tâches', function () {
         $rucher = rucherDe($alice);
 
         $this->actingAs($bob);
-        $this->post(route('taches.store'), ['titre' => 'X', 'date_prevue' => '2030-01-01', 'ruche_id' => $rucher->ruches->first()->id])->assertForbidden();
-        $this->post(route('taches.store'), ['titre' => 'X', 'date_prevue' => '2030-01-01', 'rucher_id' => $rucher->id])->assertForbidden();
+        $this->post(route('taches.store'), ['titre' => 'X', 'date_prevue' => '2030-01-01', 'ruche_id' => $rucher->ruches->first()->id])->assertNotFound();
+        $this->post(route('taches.store'), ['titre' => 'X', 'date_prevue' => '2030-01-01', 'rucher_id' => $rucher->id])->assertNotFound();
 
         $tache = tachePour($alice, $rucher->ruches->first());
-        $this->patch(route('taches.toggle', $tache))->assertForbidden();
+        $this->patch(route('taches.toggle', $tache))->assertNotFound();
     });
 });
 
@@ -659,7 +659,7 @@ describe('sécurité générale', function () {
         $alice = apiculteur();
         $this->actingAs($alice);
 
-        for ($i = 0; $i < 60; $i++) {
+        for ($i = 0; $i < 20; $i++) {
             $this->postJson(route('terrain.sync'), ['visites' => []])->assertOk();
         }
 

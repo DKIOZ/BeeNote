@@ -78,7 +78,10 @@ class RegistreService
             if ($v->traitement_applique && ! isset($traites[$v->ruche_id.'|'.$v->date_visite->toDateString()])) {
                 $resume = str_replace('Traité', 'Traité (à compléter)', $resume);
             }
-            $lignes->push(self::ligne('visite', $v, $v->date_visite, $resume));
+            if ($v->notes_generales) {
+                $resume .= '. Notes : '.$v->notes_generales;
+            }
+            $lignes->push(self::ligne('visite', $v, $v->date_visite, $resume, ['notes' => $v->notes_generales]));
         }
 
         foreach ($periode($traitements, 'date_traitement') as $t) {
@@ -119,10 +122,21 @@ class RegistreService
             return [];
         }
 
-        return Traitement::whereIn('ruche_id', $visites->pluck('ruche_id')->unique())
-            ->get(['ruche_id', 'date_traitement'])
-            ->mapWithKeys(fn ($t) => [$t->ruche_id.'|'.$t->date_traitement->toDateString() => true])
-            ->all();
+        $traitements = Traitement::whereIn('ruche_id', $visites->pluck('ruche_id')->unique())->get(['ruche_id', 'date_traitement', 'visite_id']);
+        $parVisite = $visites->keyBy('id');
+        $jours = [];
+
+        foreach ($traitements as $t) {
+            $jours[$t->ruche_id.'|'.$t->date_traitement->toDateString()] = true;
+
+            // Un traitement rattaché à sa visite la solde, même noté à une autre date.
+            if ($t->visite_id && $parVisite->has($t->visite_id)) {
+                $v = $parVisite[$t->visite_id];
+                $jours[$v->ruche_id.'|'.$v->date_visite->toDateString()] = true;
+            }
+        }
+
+        return $jours;
     }
 
     private static function traitement(Traitement $t): string

@@ -49,6 +49,36 @@ class VisiteFields
     }
 
     /**
+     * Ce qu'une seconde visite du jour ajoute à la première : seul ce qui a été observé remplace.
+     */
+    public static function completer($visite, array $nouvelle): array
+    {
+        $resultat = [];
+
+        foreach (array_keys(self::OBSERVATIONS) as $champ) {
+            if (($nouvelle[$champ] ?? 'non_observe') !== 'non_observe') {
+                $resultat[$champ] = $nouvelle[$champ];
+            }
+        }
+
+        foreach (self::ACTIONS as $champ) {
+            $resultat[$champ] = $visite->{$champ} || ! empty($nouvelle[$champ]);
+        }
+
+        foreach (['type_nourrissement', 'actions_prevues', 'prochaine_visite_prevue'] as $champ) {
+            if (! empty($nouvelle[$champ])) {
+                $resultat[$champ] = $nouvelle[$champ];
+            }
+        }
+
+        if (! empty($nouvelle['notes_generales'])) {
+            $resultat['notes_generales'] = trim($visite->notes_generales."\n".$nouvelle['notes_generales']);
+        }
+
+        return $resultat;
+    }
+
+    /**
      * Ne garde que les champs connus et remplace les absents par leur valeur par défaut.
      */
     public static function clean(array $data): array

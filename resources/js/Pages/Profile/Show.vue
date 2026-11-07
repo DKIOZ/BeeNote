@@ -9,12 +9,16 @@ import { clearAll } from '@/terrain/store.js';
 
 const user = usePage().props.auth.user;
 
-const profil = useForm({ _method: 'PUT', name: user.name, email: user.email });
+const profil = useForm({ _method: 'PUT', name: user.name, email: user.email, current_password: '' });
 const motDePasse = useForm({ current_password: '', password: '', password_confirmation: '' });
 const suppression = useForm({ password: '' });
 const confirmation = ref(false);
 
-const enregistrerProfil = () => profil.post(route('user-profile-information.update'), { errorBag: 'updateProfileInformation', preserveScroll: true });
+const enregistrerProfil = () => profil.post(route('user-profile-information.update'), {
+    errorBag: 'updateProfileInformation',
+    preserveScroll: true,
+    onFinish: () => profil.reset('current_password'),
+});
 const enregistrerMotDePasse = () => motDePasse.put(route('user-password.update'), {
     errorBag: 'updatePassword',
     preserveScroll: true,
@@ -42,6 +46,7 @@ function supprimer() {
             <form class="flex flex-col gap-3.5" @submit.prevent="enregistrerProfil">
                 <Field id="name" v-model="profil.name" label="Nom" autocomplete="name" :erreur="profil.errors.name" required />
                 <Field id="email" v-model="profil.email" type="email" label="E-mail" autocomplete="email" :erreur="profil.errors.email" required />
+                <Field v-if="profil.email.trim().toLowerCase() !== user.email.toLowerCase()" id="mdp-actuel" v-model="profil.current_password" type="password" label="Mot de passe actuel, pour changer d'adresse" autocomplete="current-password" :erreur="profil.errors.current_password" required />
                 <p v-if="profil.recentlySuccessful" role="status" class="font-semibold text-mint-ink">Enregistré.</p>
                 <button type="submit" class="bn-btn-2" :disabled="profil.processing">Enregistrer</button>
             </form>

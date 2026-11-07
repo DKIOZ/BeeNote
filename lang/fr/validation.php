@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'accepted' => 'Vous devez accepter : :attribute.',
+    'accepted' => 'Vous devez accepter :attribute.',
     'after' => 'La date doit être après :date.',
     'after_or_equal' => 'La date doit être le :date ou après.',
     'array' => 'Ce champ doit être une liste.',

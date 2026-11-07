@@ -13,7 +13,11 @@ function aPrevoir(ruche) {
         return ruche.taches[0].titre + (ruche.taches[0].retard ? ', en retard' : '');
     }
 
-    return ruche.prochaine_visite ? `Visite le ${dateCourte(ruche.prochaine_visite)}` : '—';
+    if (ruche.prochaine_visite) {
+        return `Visite le ${dateCourte(ruche.prochaine_visite)}`;
+    }
+
+    return ruche.rappel ? `À revoir vers le ${dateCourte(ruche.rappel)}` : '—';
 }
 </script>
 
@@ -36,7 +40,7 @@ function aPrevoir(ruche) {
                     </Link>
                 </td>
                 <td class="px-3 py-2 text-muted">{{ ruche.derniere_visite ? dateCourte(ruche.derniere_visite.date) : 'Jamais' }}</td>
-                <td class="px-3 py-2" :class="ruche.etat === 'late' && 'font-semibold text-rust'">{{ etat(ruche) }}</td>
+                <td class="px-3 py-2" :class="(ruche.etat === 'late' || ruche.alertes?.length) && 'font-semibold text-rust'">{{ etat(ruche) }}<span v-if="ruche.alertes?.length" class="block text-sm">À surveiller : {{ ruche.alertes.join(', ') }}</span></td>
                 <td class="px-5 py-2" :class="ruche.taches[0]?.retard ? 'font-semibold text-rust' : 'text-muted'">{{ aPrevoir(ruche) }}</td>
             </tr>
         </tbody>
