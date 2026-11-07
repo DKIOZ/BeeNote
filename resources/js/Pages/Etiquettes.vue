@@ -34,7 +34,6 @@ const imprimer = () => window.print();
                 <div v-for="ruche in rucher.ruches" :key="ruche.id" class="flex break-inside-avoid flex-col items-center gap-1.5 rounded-2xl border-2 border-dashed border-[#CBCEC2] p-3">
                     <img :src="ruche.qr" :alt="`QR code de ${ruche.nom}`" class="aspect-square w-full max-w-[150px]">
                     <span class="bn-title text-[22px]">{{ ruche.nom }}</span>
-                    <span class="text-sm text-muted">{{ rucher.nom }}</span>
                 </div>
             </div>
         </section>

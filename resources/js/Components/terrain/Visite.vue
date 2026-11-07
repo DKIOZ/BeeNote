@@ -11,6 +11,7 @@ const page = usePage();
 const { state, ruche, rucher, ruchesDuRucher, aller, noter, effacerGroupe, ecouter, arreterEcoute, quitterVisite, abandonnerVisite } = useTerrain();
 
 const quitter = ref(false);
+const abandon = ref(false);
 const valeurs = computed(() => state.visite?.valeurs ?? {});
 const voix = computed(() => state.voix);
 const voixActive = computed(() => {
@@ -190,8 +191,21 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
             @garder="quitter = false"
             @confirmer="quitter = false; quitterVisite()"
         >
-            <button type="button" class="mt-1 inline-flex min-h-[48px] w-full items-center justify-center font-semibold text-rust underline" @click="quitter = false; abandonnerVisite()">Abandonner cette visite</button>
+            <!-- Loin des deux autres boutons : avec des gants, un appui raté ne doit rien effacer. -->
+            <div class="mt-6 border-t border-hairline pt-4">
+                <button type="button" class="inline-flex min-h-[48px] w-full items-center justify-center font-semibold text-rust underline" @click="quitter = false; abandon = true">Abandonner cette visite…</button>
+            </div>
         </ConfirmSheet>
+
+        <ConfirmSheet
+            v-if="abandon"
+            :titre="`Effacer la visite de ${ruche?.nom ?? 'cette ruche'} ?`"
+            texte="Ce qui est noté et la note vocale seront effacés. Cela ne se rattrape pas."
+            garder="Garder la visite"
+            confirmer="Effacer la visite"
+            @garder="abandon = false"
+            @confirmer="abandon = false; abandonnerVisite()"
+        />
     </div>
 </template>
 

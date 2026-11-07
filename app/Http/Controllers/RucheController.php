@@ -19,14 +19,14 @@ class RucheController extends Controller
         return Inertia::render('Ruches/Form', [
             'rucher' => $rucher->only(['id', 'nom']),
             'ruche' => null,
-            'suggestion' => 'Ruche '.(collect($rucher->ruches()->pluck('nom'))->map(fn ($nom) => RucherOverview::numeroDuNom($nom) ?? 0)->push($rucher->ruches()->count())->max() + 1),
+            'suggestion' => 'Ruche '.RucherOverview::prochainNumero($rucher->team_id),
         ]);
     }
 
     public function store(Request $request, Rucher $rucher)
     {
         $this->authorize('update', $rucher);
-        $ruche = $rucher->ruches()->create($request->validate($this->rules()));
+        $ruche = $rucher->ruches()->create($request->validate($this->rules($rucher->team_id), $this->messages()));
 
         return redirect()->route('ruchers.show', $rucher)->with('message', "{$ruche->nom} ajoutée.");
     }
@@ -67,7 +67,7 @@ class RucheController extends Controller
     public function update(Request $request, Ruche $ruche)
     {
         $this->authorizeRuche($ruche, 'update');
-        $ruche->update($request->validate($this->rules()));
+        $ruche->update($request->validate($this->rules($ruche->rucher->team_id, $ruche), $this->messages()));
 
         return redirect()->route('ruches.show', $ruche)->with('message', 'Ruche enregistrée.');
     }
@@ -93,10 +93,20 @@ class RucheController extends Controller
         return redirect()->route('ruches.show', $ruche);
     }
 
-    private function rules(): array
+    private function messages(): array
     {
+        return ['nom.unique' => 'Une autre ruche porte déjà ce nom. Choisissez-en un autre, par exemple avec un autre numéro.'];
+    }
+
+    private function rules(int $teamId, ?Ruche $ruche = null): array
+    {
+        // Le nom sert au registre, aux étiquettes et à la voix : il est unique sur tout le compte.
+        $nomPris = Rule::unique('ruches', 'nom')
+            ->where(fn ($q) => $q->whereNull('deleted_at')->whereIn('rucher_id', Rucher::where('team_id', $teamId)->select('id')))
+            ->ignore($ruche?->id);
+
         return [
-            'nom' => ['required', 'string', 'max:50'],
+            'nom' => ['required', 'string', 'max:50', $nomPris],
             'couleur' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'type' => ['sometimes', 'filled', Rule::in(['dadant', 'warre', 'langstroth', 'ktbh', 'autre'])],
             'statut' => ['sometimes', 'filled', Rule::in(['active', 'inactive', 'morte'])],

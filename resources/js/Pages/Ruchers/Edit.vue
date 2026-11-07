@@ -59,7 +59,7 @@ const supprimer = () => router.delete(route('ruchers.destroy', props.rucher.id))
         <ConfirmSheet
             v-if="confirmation"
             titre="Mettre ce rucher à la corbeille ?"
-            texte="Ses ruches partent avec lui, avec leurs visites et traitements. Passé 30 jours dans la corbeille, tout sera effacé définitivement."
+            texte="Ses ruches partent avec lui. Visites et récoltes seront effacées au bout de 30 jours. Traitements et déplacements restent au registre."
             garder="Garder le rucher"
             confirmer="Mettre à la corbeille"
             @garder="confirmation = false"

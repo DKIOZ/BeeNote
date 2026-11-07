@@ -32,6 +32,7 @@ class RucherOverview
                 $numeros = self::numeros($rucher->ruches);
                 $ruches = $rucher->ruches
                     ->map(fn ($ruche) => self::ruche($ruche, $numeros[$ruche->id], $taches->where('ruche_id', $ruche->id), $today))
+                    ->sortBy('numero')
                     ->values();
 
                 return [
@@ -77,6 +78,19 @@ class RucherOverview
         return $numeros;
     }
 
+    /**
+     * Numéro de la prochaine ruche, sur tout le compte : deux ruches ne partagent jamais un nom,
+     * même après une transhumance.
+     */
+    public static function prochainNumero(int $teamId): int
+    {
+        $noms = \App\Models\Ruche::withTrashed()
+            ->whereHas('rucher', fn ($q) => $q->withTrashed()->where('team_id', $teamId))
+            ->pluck('nom');
+
+        return $noms->map(fn ($nom) => self::numeroDuNom($nom) ?? 0)->push($noms->count())->max() + 1;
+    }
+
     public static function numeroDuNom(string $nom): ?int
     {
         return preg_match('/(\d+)\s*$/', $nom, $trouve) && (int) $trouve[1] > 0 ? (int) $trouve[1] : null;
@@ -92,12 +106,11 @@ class RucherOverview
         $etat = $visite ? 'next' : 'todo';
         $visitee = $visite?->date_visite?->toDateString() === $today;
 
-        if ($premiere && $premiere < $today) {
-            // Une tâche en retard ne se cache pas derrière la visite du jour.
-            $etat = 'late';
-        } elseif ($visitee) {
+        // Même règle que le téléphone : une ruche vue aujourd'hui est faite.
+        // Une tâche en retard reste affichée à côté, elle appartient à la tâche, pas à la ruche.
+        if ($visitee) {
             $etat = 'done';
-        } elseif ($prochaine && $prochaine < $today) {
+        } elseif (($premiere && $premiere < $today) || ($prochaine && $prochaine < $today)) {
             $etat = 'late';
         } elseif ($prochaine === $today || $premiere === $today) {
             $etat = 'todo';
@@ -139,7 +152,12 @@ class RucherOverview
     {
         return Visite::where('team_id', $user->current_team_id)
             ->where('traitement_applique', true)
-            ->whereDoesntHave('traitements')
+            // Un traitement noté le soir pour plusieurs ruches solde le rappel de chacune.
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')
+                ->from('traitements')
+                ->whereColumn('traitements.ruche_id', 'visites.ruche_id')
+                ->whereColumn('traitements.date_traitement', 'visites.date_visite')
+                ->whereNull('traitements.deleted_at'))
             ->whereHas('ruche')
             ->with('ruche:id,nom')
             ->latest('date_visite')

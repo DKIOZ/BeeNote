@@ -9,7 +9,7 @@ const ETATS = { done: 'Visitée aujourd\'hui', todo: 'À visiter', late: 'En ret
 
 function aPrevoir(ruche) {
     if (ruche.taches[0]) {
-        return ruche.taches[0].titre;
+        return ruche.taches[0].titre + (ruche.taches[0].retard ? ', en retard' : '');
     }
 
     return ruche.prochaine_visite ? `Visite le ${dateCourte(ruche.prochaine_visite)}` : '—';
@@ -36,7 +36,7 @@ function aPrevoir(ruche) {
                 </td>
                 <td class="px-3 py-2 text-muted">{{ ruche.derniere_visite ? dateCourte(ruche.derniere_visite.date) : 'Jamais' }}</td>
                 <td class="px-3 py-2" :class="ruche.etat === 'late' && 'font-semibold text-rust'">{{ ETATS[ruche.etat] }}</td>
-                <td class="px-5 py-2 text-muted">{{ aPrevoir(ruche) }}</td>
+                <td class="px-5 py-2" :class="ruche.taches[0]?.retard ? 'font-semibold text-rust' : 'text-muted'">{{ aPrevoir(ruche) }}</td>
             </tr>
         </tbody>
     </table>

@@ -65,6 +65,10 @@ class NoterController extends Controller
         DB::transaction(function () use ($ruches, $type, $data, $request) {
             foreach ($ruches as $ruche) {
                 $this->enregistrer($type, $ruche, $data, $request);
+
+                if ($type === 'deplacement') {
+                    $ruche->recalculerRegistre();
+                }
             }
         });
 
@@ -91,6 +95,10 @@ class NoterController extends Controller
         $fiche = $this->fiche($type, $id, 'update');
         $fiche->update($request->validate($this->rules($type, true)));
 
+        if ($type === 'deplacement') {
+            $fiche->ruche->recalculerRegistre();
+        }
+
         return redirect()->route('ruches.show', $fiche->ruche_id)->with('message', 'Fiche corrigée.');
     }
 
@@ -115,6 +123,7 @@ class NoterController extends Controller
             DB::transaction(function () use ($fiche) {
                 $fiche->ruche->placerDans($fiche->depuis_rucher_id);
                 $fiche->delete();
+                $fiche->ruche->recalculerRegistre();
             });
 
             return redirect()->route('ruches.show', $rucheId)->with('message', 'Déplacement annulé, la ruche est revenue à sa place.');

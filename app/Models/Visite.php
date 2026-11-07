@@ -73,7 +73,8 @@ class Visite extends Model
             'ponte_observee' => ['ok' => 'Ponte vue', 'non_ok' => 'Pas de ponte'],
             'cellules_royales' => ['ok' => 'Cellules royales', 'non_ok' => 'Pas de cellules'],
             'reserves_miel' => ['suffisantes' => 'Réserves bonnes', 'insuffisantes' => 'Réserves faibles'],
-            'varroas_observes' => ['ok' => 'Varroas présents', 'non_ok' => 'Pas de varroas'],
+            // Au registre, on écrit ce qui a été observé : l'absence vue ne prouve pas l'absence.
+            'varroas_observes' => ['ok' => 'Varroas présents', 'non_ok' => 'Pas vu de varroas'],
             'surface_couvain' => ['faible' => 'Couvain faible', 'normale' => 'Couvain normal', 'importante' => 'Couvain fort'],
             'frelons_asiatiques' => ['absents' => 'Pas de frelons', 'quelques_uns' => 'Quelques frelons', 'nombreux' => 'Beaucoup de frelons'],
             'fausse_teigne' => ['ok' => 'Teigne présente', 'non_ok' => 'Pas de teigne'],

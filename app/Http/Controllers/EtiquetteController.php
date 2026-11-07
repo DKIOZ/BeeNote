@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Rucher;
+use App\Services\RucherOverview;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ class EtiquetteController extends Controller
     public function index(Request $request)
     {
         $ruchers = Rucher::where('team_id', $request->user()->current_team_id)
-            ->with(['ruches' => fn ($q) => $q->orderBy('id')])
+            ->with(['ruches' => fn ($q) => $q->orderBy('id')->where('statut', '!=', 'morte')])
             ->orderBy('nom')
             ->get();
 
@@ -28,7 +29,7 @@ class EtiquetteController extends Controller
             'ruchers' => $ruchers->map(fn (Rucher $rucher) => [
                 'id' => $rucher->id,
                 'nom' => $rucher->nom,
-                'ruches' => $rucher->ruches->map(fn ($ruche) => [
+                'ruches' => $rucher->ruches->sortBy(fn ($ruche) => RucherOverview::numeroDuNom($ruche->nom) ?? PHP_INT_MAX)->values()->map(fn ($ruche) => [
                     'id' => $ruche->id,
                     'nom' => $ruche->nom,
                     'qr' => $qr->render(route('qr.scan', $ruche->qr_token)),

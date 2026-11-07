@@ -38,8 +38,10 @@ class RucherController extends Controller
             $rucher->team_id = $request->user()->current_team_id;
             $rucher->save();
 
-            for ($i = 1; $i <= $data['nombre_ruches']; $i++) {
-                $rucher->ruches()->create(['nom' => "Ruche {$i}"]);
+            // La numérotation suit tout le compte : un nouveau rucher ne recrée jamais « Ruche 1 ».
+            $premier = RucherOverview::prochainNumero($rucher->team_id);
+            for ($i = 0; $i < $data['nombre_ruches']; $i++) {
+                $rucher->ruches()->create(['nom' => 'Ruche '.($premier + $i)]);
             }
 
             return $rucher;

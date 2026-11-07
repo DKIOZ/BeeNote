@@ -80,6 +80,7 @@ class CorbeilleController extends Controller
                     if ($dernier->is($ligne)) {
                         $ligne->ruche->placerDans($ligne->vers_rucher_id);
                     }
+                    $ligne->ruche->recalculerRegistre();
                 }
             });
         }

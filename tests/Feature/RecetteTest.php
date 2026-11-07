@@ -225,7 +225,7 @@ describe('état des ruches', function () {
         $rucher = rucherAvec($user, ['Ruche 1', 'Ruche 3', 'La bleue']);
 
         expect(RucherOverview::ruchers($user)->first()['ruches']->pluck('numero', 'nom')->all())
-            ->toBe(['Ruche 1' => 1, 'Ruche 3' => 3, 'La bleue' => 2]);
+            ->toEqual(['Ruche 1' => 1, 'Ruche 3' => 3, 'La bleue' => 2]);
     });
 
     it('compte une ruche jamais visitée comme à visiter, pas une ruche morte', function () {
@@ -264,6 +264,124 @@ describe('état des ruches', function () {
         $this->actingAs($user)
             ->put(route('ruches.update', $ruche), ['nom' => 'Ruche 1', 'type' => null])
             ->assertSessionHasErrors('type');
+    });
+});
+
+describe('panel : registre juste', function () {
+    it('écrit le type de miel, et annonce le total d\'une récolte sur plusieurs ruches', function () {
+        $user = compte();
+        $rucher = rucherAvec($user, ['Ruche 1', 'Ruche 2']);
+
+        $this->actingAs($user)->post(route('noter.store', 'recolte'), [
+            'ruche_ids' => $rucher->ruches->pluck('id')->all(),
+            'date_recolte' => now()->toDateString(),
+            'type_miel' => 'acacia',
+            'quantite_kg' => 12,
+        ]);
+
+        expect(RegistreService::pourEquipe($user->current_team_id)->pluck('detail')->all())->toBe(['Acacia, 12 kg', 'Acacia, 12 kg']);
+    });
+
+    it('écrit produit, cible, dose et lot du traitement', function () {
+        $user = compte();
+        $ruche = rucherAvec($user)->ruches->first();
+        $this->actingAs($user)->post(route('noter.store', 'traitement'), ['ruche_ids' => [$ruche->id], 'date_traitement' => now()->toDateString(), 'type_traitement' => 'varroa', 'produit_utilise' => 'Apivar', 'dosage' => '2 lanières', 'numero_lot' => 'AV2611B']);
+
+        expect(RegistreService::pourEquipe($user->current_team_id)->first()['detail'])->toBe('Apivar (varroa), 2 lanières, lot AV2611B');
+    });
+
+    it('dit « Traité (à compléter) » tant qu\'aucun traitement n\'est noté, et éteint le rappel pour chaque ruche traitée', function () {
+        $user = compte();
+        $rucher = rucherAvec($user, ['Ruche 1', 'Ruche 2']);
+        foreach ($rucher->ruches as $ruche) {
+            visiteDe($ruche, $user, ['traitement_applique' => true]);
+        }
+
+        expect(RucherOverview::aCompleter($user))->toHaveCount(2);
+        expect(RegistreService::pourEquipe($user->current_team_id)->pluck('detail')->all())->each->toContain('Traité (à compléter)');
+
+        $this->actingAs($user)->post(route('noter.store', 'traitement'), ['ruche_ids' => $rucher->ruches->pluck('id')->all(), 'date_traitement' => now()->toDateString(), 'type_traitement' => 'varroa', 'produit_utilise' => 'Apivar']);
+
+        expect(RucherOverview::aCompleter($user))->toHaveCount(0);
+        expect(RegistreService::pourEquipe($user->current_team_id)->where('type', 'visite')->pluck('detail')->all())->each->not->toContain('à compléter');
+    });
+
+    it('recalcule le rucher des saisies quand un déplacement est noté après coup', function () {
+        $user = compte();
+        $a = rucherAvec($user, ['Ruche 1'], 'A');
+        $b = rucherAvec($user, [], 'B');
+        $ruche = $a->ruches->first();
+        $visite = visiteDe($ruche, $user, ['date_visite' => now()->subDays(2)->toDateString()]);
+        $this->actingAs($user)->post(route('noter.store', 'deplacement'), ['ruche_ids' => [$ruche->id], 'vers_rucher_id' => $b->id, 'date_deplacement' => now()->subDays(5)->toDateString()]);
+
+        expect($visite->fresh()->rucher_id)->toBe($b->id);
+
+        $this->delete(route('fiches.destroy', ['deplacement', RucheEmplacement::first()->id]));
+
+        expect($visite->fresh()->rucher_id)->toBe($a->id);
+    });
+
+    it('range les lignes d\'une journée dans l\'ordre de saisie', function () {
+        $user = compte();
+        $a = rucherAvec($user, ['Ruche 1'], 'A');
+        $b = rucherAvec($user, [], 'B');
+        $ruche = $a->ruches->first();
+        $this->actingAs($user)->post(route('noter.store', 'deplacement'), ['ruche_ids' => [$ruche->id], 'vers_rucher_id' => $b->id, 'date_deplacement' => now()->toDateString()]);
+        $this->travel(1)->minutes();
+        visiteDe($ruche->fresh(), $user);
+
+        expect(RegistreService::pourEquipe($user->current_team_id)->pluck('type')->all())->toBe(['visite', 'deplacement']);
+    });
+
+    it('garde au registre les traitements d\'une ruche purgée de la corbeille', function () {
+        $user = compte();
+        $ruche = rucherAvec($user)->ruches->first();
+        visiteDe($ruche, $user);
+        $this->actingAs($user)->post(route('noter.store', 'traitement'), ['ruche_ids' => [$ruche->id], 'date_traitement' => now()->toDateString(), 'type_traitement' => 'varroa', 'produit_utilise' => 'Apivar']);
+        $ruche->delete();
+
+        expect(RegistreService::pourEquipe($user->current_team_id)->pluck('type')->all())->toBe(['traitement']);
+
+        Ruche::onlyTrashed()->update(['deleted_at' => now()->subDays(40)]);
+        $this->artisan('beenote:vider-corbeille')->assertOk();
+
+        expect(Visite::withTrashed()->count())->toBe(0);
+        expect(RegistreService::pourEquipe($user->current_team_id)->pluck('ruche')->all())->toBe(['Ruche 1']);
+    });
+});
+
+describe('panel : numéros de ruche', function () {
+    it('poursuit la numérotation d\'un rucher à l\'autre', function () {
+        $user = compte();
+        rucherAvec($user, ['Ruche 1', 'Ruche 2']);
+
+        $this->actingAs($user)->post(route('ruchers.store'), ['nom' => 'Colza', 'nombre_ruches' => 2]);
+
+        expect(Rucher::where('nom', 'Colza')->first()->ruches->pluck('nom')->all())->toBe(['Ruche 3', 'Ruche 4']);
+    });
+
+    it('refuse un nom déjà pris dans un autre rucher', function () {
+        $user = compte();
+        rucherAvec($user, ['Ruche 1'], 'A');
+        $b = rucherAvec($user, [], 'B');
+
+        $this->actingAs($user)->post(route('ruches.store', $b), ['nom' => 'Ruche 1'])->assertSessionHasErrors('nom');
+        $this->actingAs($user)->post(route('ruches.store', $b), ['nom' => 'Ruche 2'])->assertSessionHasNoErrors();
+    });
+
+    it('n\'empêche pas deux comptes d\'avoir leur « Ruche 1 »', function () {
+        rucherAvec(compte(), ['Ruche 1']);
+        $autre = compte();
+        $rucher = rucherAvec($autre, []);
+
+        $this->actingAs($autre)->post(route('ruches.store', $rucher), ['nom' => 'Ruche 1'])->assertSessionHasNoErrors();
+    });
+
+    it('trie les ruches par numéro', function () {
+        $user = compte();
+        rucherAvec($user, ['Ruche 10', 'Ruche 2']);
+
+        expect(RucherOverview::ruchers($user)->first()['ruches']->pluck('nom')->all())->toBe(['Ruche 2', 'Ruche 10']);
     });
 });
 
@@ -434,7 +552,7 @@ describe('droits affichés', function () {
         $this->get(route('fiches.show', ['traitement', $traitement->id]))->assertInertia(fn ($page) => $page->where('peutSupprimer', true));
     });
 
-    it('garde visible une tâche en retard après la visite du jour, sans redemander la visite', function () {
+    it('compte faite une ruche vue aujourd\'hui, et garde sa tâche en retard à côté', function () {
         $user = compte();
         $ruche = rucherAvec($user)->ruches->first();
         visiteDe($ruche, $user);
@@ -442,7 +560,8 @@ describe('droits affichés', function () {
 
         $resultat = RucherOverview::ruchers($user)->first();
 
-        expect($resultat['ruches'][0]['etat'])->toBe('late');
+        expect($resultat['ruches'][0]['etat'])->toBe('done');
+        expect($resultat['ruches'][0]['taches'][0]['retard'])->toBeTrue();
         expect($resultat['a_visiter'])->toBe(0);
     });
 });
@@ -534,7 +653,7 @@ describe('registre', function () {
         }
 
         expect(RegistreService::pourEquipe($user->current_team_id)->pluck('detail')->sort()->values()->all())
-            ->toBe(['100 kg', '12,5 kg', '20 kg']);
+            ->toBe(['Acacia, 100 kg', 'Acacia, 12,5 kg', 'Acacia, 20 kg']);
     });
 
     it('n\'applique pas de limite au fichier téléchargé', function () {

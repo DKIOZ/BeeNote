@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class RucheFactory extends Factory
 {
+    private static int $numero = 1;
+
     /**
      * Define the model's default state.
      *
@@ -18,7 +20,8 @@ class RucheFactory extends Factory
     public function definition(): array
     {
         return [
-            'nom' => 'Ruche '.fake()->unique()->numberBetween(1, 9999),
+            // Numéros croissants : l'ordre de création suit l'ordre d'affichage, trié par numéro.
+            'nom' => 'Ruche '.self::$numero++,
             'rucher_id' => Rucher::factory(),
         ];
     }

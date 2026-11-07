@@ -39,6 +39,16 @@ class Ruche extends Model
         Tache::where('ruche_id', $this->id)->update(['rucher_id' => $rucherId]);
     }
 
+    /**
+     * Après un changement de déplacement, chaque saisie retrouve le rucher de sa date.
+     */
+    public function recalculerRegistre(): void
+    {
+        foreach ([Visite::class, Traitement::class, Recolte::class] as $modele) {
+            $modele::recalculerPourRuche($this->id);
+        }
+    }
+
     public function rucher()
     {
         return $this->belongsTo(Rucher::class);

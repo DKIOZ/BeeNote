@@ -24,17 +24,26 @@ Artisan::command('beenote:vider-corbeille', function () {
         $visite->forceDelete();
     });
 
-    // Purger une ruche emporte ses visites en base : leurs sons doivent partir avant.
+    // Traitements et déplacements relèvent du registre d'élevage : ils ne sont jamais effacés.
+    // Une ruche qui en porte reste en base, à la corbeille, pour qu'ils gardent leur ruche.
     $purgerRuches = function ($ruches) use ($effacerNote) {
         foreach ($ruches as $ruche) {
-            Visite::withTrashed()->where('ruche_id', $ruche->id)->whereNotNull('note_audio_path')->each($effacerNote);
-            $ruche->forceDelete();
+            Visite::withTrashed()->where('ruche_id', $ruche->id)->each(function (Visite $visite) use ($effacerNote) {
+                $effacerNote($visite);
+                $visite->forceDelete();
+            });
+            Recolte::withTrashed()->where('ruche_id', $ruche->id)->forceDelete();
+
+            $legal = Traitement::withTrashed()->where('ruche_id', $ruche->id)->exists()
+                || RucheEmplacement::withTrashed()->where('ruche_id', $ruche->id)->exists();
+
+            if (! $legal) {
+                $ruche->forceDelete();
+            }
         }
     };
 
-    foreach ([Traitement::class, Recolte::class, RucheEmplacement::class] as $modele) {
-        $modele::onlyTrashed()->where('deleted_at', '<', $limite)->forceDelete();
-    }
+    Recolte::onlyTrashed()->where('deleted_at', '<', $limite)->forceDelete();
 
     $purgerRuches(Ruche::onlyTrashed()->where('deleted_at', '<', $limite)->get());
 
@@ -50,7 +59,10 @@ Artisan::command('beenote:vider-corbeille', function () {
 
         if (! $saisies && ! $deplacements) {
             $purgerRuches(Ruche::withTrashed()->where('rucher_id', $rucher->id)->get());
-            $rucher->forceDelete();
+
+            if (! Ruche::withTrashed()->where('rucher_id', $rucher->id)->exists()) {
+                $rucher->forceDelete();
+            }
         }
     }
 

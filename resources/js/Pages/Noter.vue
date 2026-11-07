@@ -117,7 +117,10 @@ function enregistrer() {
                 </template>
 
                 <template v-else-if="type === 'recolte'">
-                    <Field id="poids" v-model="form.quantite_kg" type="number" step="0.01" min="0.01" inputmode="decimal" label="Poids en kg" placeholder="Ex. : 14" :erreur="form.errors.quantite_kg" required />
+                    <Field id="poids" v-model="form.quantite_kg" type="number" step="0.01" min="0.01" inputmode="decimal" :label="nombre > 1 ? 'Poids par ruche, en kg' : 'Poids en kg'" placeholder="Ex. : 14" :erreur="form.errors.quantite_kg" required />
+                    <p v-if="nombre > 1 && Number(form.quantite_kg) > 0" class="-mt-2 rounded-2xl bg-cream p-3 font-semibold text-cream-ink" role="status">
+                        {{ nombre }} ruches × {{ form.quantite_kg }} kg = {{ Math.round(nombre * Number(form.quantite_kg) * 100) / 100 }} kg au total
+                    </p>
                     <Field id="miel" v-model="form.type_miel" label="Type de miel" :options="[{ value: 'toutes_fleurs', text: 'Toutes fleurs' }, { value: 'acacia', text: 'Acacia' }, { value: 'tilleul', text: 'Tilleul' }, { value: 'chataignier', text: 'Châtaignier' }, { value: 'lavande', text: 'Lavande' }, { value: 'autre', text: 'Autre' }]" :erreur="form.errors.type_miel" />
                     <Field id="date_r" v-model="form.date_recolte" type="date" label="Date" :max="aujourdhui" :erreur="form.errors.date_recolte" required />
                 </template>

@@ -10,6 +10,9 @@ import { useTerrain } from '@/terrain/useTerrain.js';
 const page = usePage();
 const { state, rucher, ruchesDuRucher, prochaineRuche, aller, commencer, ecouter, arreterEcoute, terminerRucher } = useTerrain();
 
+// Une visite quittée reste en cours : la tournée la montre et propose de la reprendre.
+const enCours = computed(() => (state.visite ? ruchesDuRucher.value.find((r) => r.id === state.visite.ruche_id) ?? null : null));
+const notesEnCours = computed(() => Object.keys(state.visite?.valeurs ?? {}).filter((cle) => !cle.startsWith('_') && state.visite.valeurs[cle]).length);
 const faites = computed(() => ruchesDuRucher.value.filter((r) => r.etat === 'done').length);
 const voixActive = computed(() => {
     try {
@@ -43,12 +46,18 @@ const basculerEcoute = () => (state.voix.ecoute ? arreterEcoute() : ecouter(page
             <div role="group" aria-label="Ruches du rucher" class="flex flex-wrap gap-1">
                 <button v-for="ruche in ruchesDuRucher" :key="ruche.id" type="button" :aria-label="`${ruche.nom}, ${STATUTS[ruche.etat]}`" class="flex flex-col items-center gap-0.5 text-sm font-semibold" :class="serree ? 'w-[76px]' : 'w-[104px]'" @click="commencer(ruche.id)">
                     <Hex :etat="prochaineRuche?.id === ruche.id && ruche.etat === 'next' ? 'todo' : ruche.etat" :mark="ruche.numero" :size="serree ? 60 : 96" sur-vert :class="prochaineRuche?.id === ruche.id && 'animate-bn-pulse'" />
-                    {{ prochaineRuche?.id === ruche.id ? 'Maintenant' : STATUTS[ruche.etat] }}
+                    {{ enCours?.id === ruche.id ? 'En cours' : prochaineRuche?.id === ruche.id ? 'Maintenant' : STATUTS[ruche.etat] }}
                 </button>
             </div>
         </section>
 
-        <section v-if="prochaineRuche" class="bn-card mx-4 mt-3 p-4 lg:mx-0">
+        <section v-if="enCours" class="mx-4 mt-3 rounded-card bg-cream p-4 lg:mx-0">
+            <p class="text-sm font-semibold text-cream-ink">Visite en cours, rien n'est perdu</p>
+            <h2 class="bn-title text-[28px]">{{ enCours.nom }}</h2>
+            <p class="mb-2.5 mt-0.5 text-cream-ink">{{ notesEnCours }} {{ notesEnCours > 1 ? 'points notés' : 'point noté' }}</p>
+            <button type="button" class="bn-btn w-full lg:w-full" @click="commencer(enCours.id)">Reprendre {{ enCours.nom }}</button>
+        </section>
+        <section v-else-if="prochaineRuche" class="bn-card mx-4 mt-3 p-4 lg:mx-0">
             <h2 class="bn-title text-[28px]">{{ prochaineRuche.nom }}</h2>
             <p class="mb-2.5 mt-0.5" :class="prochaineRuche.etat === 'late' ? 'font-semibold text-rust' : 'text-muted'">{{ etatSuivante }}</p>
             <button type="button" class="bn-btn w-full lg:w-full" @click="commencer(prochaineRuche.id)">Commencer {{ prochaineRuche.nom }}</button>

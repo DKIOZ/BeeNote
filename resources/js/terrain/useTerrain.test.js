@@ -400,6 +400,21 @@ describe('contre-recette', () => {
     });
 });
 
+describe('panel', () => {
+    it('ne laisse rien de la ruche précédente à l\'écran', async () => {
+        const { terrain } = await charger({ enLigne: false });
+        terrain.choisirRucher(1);
+        await terrain.commencer(11);
+        terrain.noter(CALME);
+        expect(terrain.state.voix.echo).toContain('calme');
+
+        await terrain.valider();
+
+        expect(terrain.state.visite.ruche_id).toBe(12);
+        expect(terrain.state.voix.echo).toBeNull();
+    });
+});
+
 describe('enchaînement', () => {
     it('après « c\'est bon », le toucher ouvre la ruche suivante comme la voix', async () => {
         const { terrain } = await charger({ enLigne: false });

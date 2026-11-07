@@ -227,6 +227,8 @@ function nouveauBrouillon(id, date = null) {
         apres_coup: date !== null,
     };
     historique = [];
+    // Rien de la ruche précédente ne reste à l'écran.
+    Object.assign(state.voix, { echo: null, dernier: null, entendu: null, rate: false, echecs: 0 });
     sauverBrouillon();
 }
 
