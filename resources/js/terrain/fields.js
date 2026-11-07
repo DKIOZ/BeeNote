@@ -21,7 +21,7 @@ export const FAMILLES = [
         titre: 'Santé',
         groupes: [
             obs('reserves_miel', 'Réserves de miel', [['suffisantes', 'Réserves bonnes'], ['insuffisantes', 'Réserves faibles']]),
-            obs('varroas_observes', 'Varroas', [['ok', 'Varroas présents'], ['non_ok', 'Pas de varroas']]),
+            obs('varroas_observes', 'Varroas', [['non_ok', 'Pas de varroas'], ['ok', 'Varroas présents']]),
         ],
     },
 ];

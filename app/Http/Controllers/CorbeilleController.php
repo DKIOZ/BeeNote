@@ -21,6 +21,8 @@ class CorbeilleController extends Controller
         'deplacement' => RucheEmplacement::class,
     ];
 
+    private const DATES = ['visite' => 'date_visite', 'traitement' => 'date_traitement', 'recolte' => 'date_recolte', 'deplacement' => 'date_deplacement'];
+
     public function index(Request $request)
     {
         $teamId = $request->user()->current_team_id;
@@ -37,9 +39,12 @@ class CorbeilleController extends Controller
         }
 
         foreach (self::MODELES as $type => $modele) {
-            $lignes = $modele::onlyTrashed()->where('team_id', $teamId)->whereHas('ruche')->with('ruche:id,nom')->get();
+            $lignes = $modele::onlyTrashed()->where('team_id', $teamId)->whereHas('ruche')->with('ruche.rucher:id,nom')->get();
             foreach ($lignes as $ligne) {
-                $items->push($this->item($type, $ligne, ucfirst($type === 'recolte' ? 'récolte' : ($type === 'deplacement' ? 'déplacement' : $type)), $ligne->ruche->nom));
+                // Ruche, rucher et date : avec plusieurs ruchers, le nom seul ne suffit pas à reconnaître la ligne.
+                $date = $ligne->{self::DATES[$type]}?->format('d/m/Y');
+                $detail = implode(' · ', array_filter([$ligne->ruche->nom, $ligne->ruche->rucher?->nom, $date]));
+                $items->push($this->item($type, $ligne, ucfirst($type === 'recolte' ? 'récolte' : ($type === 'deplacement' ? 'déplacement' : $type)), $detail));
             }
         }
 

@@ -7,20 +7,25 @@ const props = defineProps({
     size: { type: Number, default: 56 },
     parLigne: { type: Number, default: 4 },
     surVert: { type: Boolean, default: false },
+    // Au-delà, les alvéoles sont résumées par « +N » : aucune ruche ne disparaît en silence.
+    max: { type: Number, default: null },
 });
+
+const visibles = computed(() => (props.max ? props.ruches.slice(0, props.max) : props.ruches));
+const cachees = computed(() => props.ruches.length - visibles.value.length);
 
 // Les lignes paires sont décalées d'une demi-alvéole pour former un vrai rayon.
 const lignes = computed(() => {
     const resultat = [];
-    for (let i = 0; i < props.ruches.length; i += props.parLigne) {
-        resultat.push(props.ruches.slice(i, i + props.parLigne));
+    for (let i = 0; i < visibles.value.length; i += props.parLigne) {
+        resultat.push(visibles.value.slice(i, i + props.parLigne));
     }
 
     return resultat;
 });
 
 const description = computed(() => {
-    const etats = { done: 'faite', todo: 'à faire', late: 'en retard', next: 'à venir' };
+    const etats = { done: 'faite', todo: 'à faire', late: 'en retard', next: 'à venir', hors: 'hors tournée' };
 
     return props.ruches.map((r) => `${r.nom}, ${etats[r.etat] ?? 'à venir'}`).join(' ; ');
 });
@@ -36,5 +41,6 @@ const description = computed(() => {
         >
             <Hex v-for="ruche in ligne" :key="ruche.id" :etat="ruche.etat" :mark="ruche.numero" :size="size" :sur-vert="surVert" />
         </div>
+        <p v-if="cachees > 0" aria-hidden="true" class="mt-1 text-sm font-semibold" :class="surVert ? 'text-sage' : 'text-muted'">+ {{ cachees }} {{ cachees > 1 ? 'autres ruches' : 'autre ruche' }}</p>
     </div>
 </template>

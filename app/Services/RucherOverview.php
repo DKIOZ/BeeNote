@@ -14,6 +14,9 @@ use Illuminate\Support\Collection;
  */
 class RucherOverview
 {
+    // Même valeur que RAPPEL_JOURS côté téléphone (resources/js/terrain/useTerrain.js).
+    public const RAPPEL_JOURS = 21;
+
     public static function ruchers(User $user): Collection
     {
         $teamId = $user->current_team_id;
@@ -40,7 +43,7 @@ class RucherOverview
                     'nom' => $rucher->nom,
                     'a_position' => $rucher->latitude !== null,
                     'ruches' => $ruches,
-                    'a_visiter' => $ruches->whereIn('etat', ['todo', 'late'])->where('statut', '!=', 'morte')->where('visitee', false)->count(),
+                    'a_visiter' => $ruches->whereIn('etat', ['todo', 'late'])->count(),
                     'taches' => self::taches($taches->where('rucher_id', $rucher->id)->whereNull('ruche_id'), $today),
                 ];
             })
@@ -106,13 +109,19 @@ class RucherOverview
         $etat = $visite ? 'next' : 'todo';
         $visitee = $visite?->date_visite?->toDateString() === $today;
 
+        // Sans prochaine visite prévue, la ruche revient d'elle-même à visiter au bout de trois semaines.
+        $rappel = $visite && ! $prochaine ? $visite->date_visite->copy()->addDays(self::RAPPEL_JOURS)->toDateString() : null;
+
         // Même règle que le téléphone : une ruche vue aujourd'hui est faite.
         // Une tâche en retard reste affichée à côté, elle appartient à la tâche, pas à la ruche.
-        if ($visitee) {
+        if ($ruche->statut && $ruche->statut !== 'active') {
+            // Morte ou inactive : hors tournée et hors comptes, mais toujours visible.
+            $etat = 'hors';
+        } elseif ($visitee) {
             $etat = 'done';
         } elseif (($premiere && $premiere < $today) || ($prochaine && $prochaine < $today)) {
             $etat = 'late';
-        } elseif ($prochaine === $today || $premiere === $today) {
+        } elseif ($prochaine === $today || $premiere === $today || ($rappel && $rappel <= $today)) {
             $etat = 'todo';
         }
 

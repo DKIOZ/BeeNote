@@ -82,15 +82,26 @@ class RegistreService
         }
 
         foreach ($periode($traitements, 'date_traitement') as $t) {
-            $lignes->push(self::ligne('traitement', $t, $t->date_traitement, self::traitement($t)));
+            $lignes->push(self::ligne('traitement', $t, $t->date_traitement, self::traitement($t), [
+                'produit' => $t->produit_utilise,
+                'cible' => self::CIBLES[$t->type_traitement] ?? $t->type_traitement,
+                'dose' => $t->dosage,
+                'lot' => $t->numero_lot,
+            ]));
         }
 
         foreach ($periode($recoltes, 'date_recolte') as $r) {
-            $lignes->push(self::ligne('recolte', $r, $r->date_recolte, (self::MIELS[$r->type_miel] ?? 'Miel').', '.self::kilos($r->quantite_kg)));
+            $lignes->push(self::ligne('recolte', $r, $r->date_recolte, (self::MIELS[$r->type_miel] ?? 'Miel').', '.self::kilos($r->quantite_kg), [
+                'miel' => self::MIELS[$r->type_miel] ?? $r->type_miel,
+                'poids_kg' => (float) $r->quantite_kg,
+            ]));
         }
 
         foreach ($periode($emplacements, 'date_deplacement') as $e) {
-            $lignes->push(self::ligne('deplacement', $e, $e->date_deplacement, ($e->depuis?->nom ?? '?').' vers '.($e->vers?->nom ?? '?')));
+            $lignes->push(self::ligne('deplacement', $e, $e->date_deplacement, ($e->depuis?->nom ?? '?').' vers '.($e->vers?->nom ?? '?'), [
+                'depuis' => $e->depuis?->nom,
+                'vers' => $e->vers?->nom,
+            ]));
         }
 
         // Dans une même journée, l'ordre de saisie : un déplacement fait le matin reste avant les visites.
@@ -132,7 +143,7 @@ class RegistreService
         return rtrim(rtrim(number_format((float) $quantite, 2, ',', ''), '0'), ',').' kg';
     }
 
-    private static function ligne(string $type, $modele, $date, string $detail): array
+    private static function ligne(string $type, $modele, $date, string $detail, array $champs = []): array
     {
         return [
             'type' => $type,
@@ -143,6 +154,7 @@ class RegistreService
             'rucher' => $modele instanceof RucheEmplacement ? $modele->vers?->nom : ($modele->rucher?->nom ?? $modele->ruche?->rucher?->nom),
             'detail' => $detail,
             'cree' => $modele->created_at?->getTimestamp() ?? 0,
+            'champs' => $champs,
         ];
     }
 }

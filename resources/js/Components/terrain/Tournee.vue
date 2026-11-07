@@ -14,6 +14,7 @@ const { state, rucher, ruchesDuRucher, prochaineRuche, aller, commencer, ecouter
 const enCours = computed(() => (state.visite ? ruchesDuRucher.value.find((r) => r.id === state.visite.ruche_id) ?? null : null));
 const notesEnCours = computed(() => Object.keys(state.visite?.valeurs ?? {}).filter((cle) => !cle.startsWith('_') && state.visite.valeurs[cle]).length);
 const faites = computed(() => ruchesDuRucher.value.filter((r) => r.etat === 'done').length);
+const enTournee = computed(() => ruchesDuRucher.value.filter((r) => r.etat !== 'hors').length);
 const voixActive = computed(() => {
     try {
         return localStorage.getItem('bn-voix') !== '0';
@@ -23,7 +24,8 @@ const voixActive = computed(() => {
 });
 // Au-delà de six ruches, les alvéoles se resserrent pour garder « Commencer » à portée.
 const serree = computed(() => ruchesDuRucher.value.length > 6);
-const STATUTS = { done: 'Faite', todo: 'À faire', late: 'En retard', next: 'À venir' };
+const STATUTS = { done: 'Faite', todo: 'À faire', late: 'En retard', next: 'À venir', hors: 'Hors tournée' };
+const libelle = (ruche) => (ruche.etat === 'hors' ? (ruche.statut === 'morte' ? 'Morte' : 'Inactive') : STATUTS[ruche.etat]);
 const etatSuivante = computed(() => {
     const ruche = prochaineRuche.value;
     if (!ruche) {
@@ -37,16 +39,16 @@ const basculerEcoute = () => (state.voix.ecoute ? arreterEcoute() : ecouter(page
 </script>
 
 <template>
-    <div v-if="rucher">
+    <div v-if="rucher" class="pb-28">
         <section class="rounded-b-hero bg-forest px-5 pb-5 pt-2 text-white lg:rounded-hero">
             <button type="button" aria-label="Retour" class="-ml-3 flex h-12 w-12 items-center justify-center" @click="aller('accueil')"><Icon nom="retour" /></button>
             <h1 class="bn-title text-4xl leading-tight">{{ rucher.nom }}</h1>
-            <p class="mb-3 mt-1 text-sage">{{ faites }} {{ faites > 1 ? 'ruches' : 'ruche' }} sur {{ ruchesDuRucher.length }} {{ faites > 1 ? 'visitées' : 'visitée' }}</p>
+            <p class="mb-3 mt-1 text-sage">{{ faites }} {{ faites > 1 ? 'ruches' : 'ruche' }} sur {{ enTournee }} {{ faites > 1 ? 'visitées' : 'visitée' }}</p>
 
             <div role="group" aria-label="Ruches du rucher" class="flex flex-wrap gap-1">
-                <button v-for="ruche in ruchesDuRucher" :key="ruche.id" type="button" :aria-label="`${ruche.nom}, ${STATUTS[ruche.etat]}`" class="flex flex-col items-center gap-0.5 text-sm font-semibold" :class="serree ? 'w-[76px]' : 'w-[104px]'" @click="commencer(ruche.id)">
+                <button v-for="ruche in ruchesDuRucher" :key="ruche.id" type="button" :aria-label="`${ruche.nom}, ${libelle(ruche)}`" class="flex flex-col items-center gap-0.5 text-sm font-semibold" :class="serree ? 'w-[76px]' : 'w-[104px]'" @click="commencer(ruche.id)">
                     <Hex :etat="prochaineRuche?.id === ruche.id && ruche.etat === 'next' ? 'todo' : ruche.etat" :mark="ruche.numero" :size="serree ? 60 : 96" sur-vert :class="prochaineRuche?.id === ruche.id && 'animate-bn-pulse'" />
-                    {{ enCours?.id === ruche.id ? 'En cours' : prochaineRuche?.id === ruche.id ? 'Maintenant' : STATUTS[ruche.etat] }}
+                    {{ enCours?.id === ruche.id ? 'En cours' : prochaineRuche?.id === ruche.id ? 'Maintenant' : libelle(ruche) }}
                 </button>
             </div>
         </section>

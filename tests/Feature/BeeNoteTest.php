@@ -127,7 +127,7 @@ describe('isolation entre équipes', function () {
         $ruche = rucherDe($alice)->ruches->first();
 
         $this->actingAs($bob)->get(route('qr.scan', $ruche->qr_token))->assertNotFound();
-        $this->actingAs($alice)->get(route('qr.scan', $ruche->qr_token))->assertRedirect(route('ruches.show', $ruche));
+        $this->actingAs($alice)->get(route('qr.scan', $ruche->qr_token))->assertRedirect(route('terrain', ['ruche' => $ruche->id]));
     });
 
     it('exige une connexion', function () {

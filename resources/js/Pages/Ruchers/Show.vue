@@ -9,6 +9,9 @@ import { dateCourte } from '@/terrain/fields.js';
 defineProps({ rucher: Object, peutSupprimer: Boolean });
 
 function etatTexte(ruche) {
+    if (ruche.etat === 'hors') {
+        return ruche.statut === 'morte' ? 'Morte, hors tournée' : 'Inactive, hors tournée';
+    }
     if (ruche.taches[0]) {
         return ruche.taches[0].titre + (ruche.taches[0].retard ? ', en retard' : '');
     }

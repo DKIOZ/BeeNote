@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { resumeVisite, TOUS_LES_GROUPES } from '@/terrain/fields.js';
 import { useTerrain } from '@/terrain/useTerrain.js';
 
-const { state, ruche, rucheApres, aller, valider, basculerTache } = useTerrain();
+const { state, ruche, rucheApres, valider, basculerTache, corriger, abandonnerVisite } = useTerrain();
 
 const valeurs = computed(() => state.visite?.valeurs ?? {});
 const lignes = computed(() => resumeVisite(valeurs.value));
@@ -22,7 +22,17 @@ const bonneReponse = () => {
     }
 };
 
-const suivante = computed(() => rucheApres.value?.nom ?? null);
+const nomDe = (id) => state.donnees?.ruchers.flatMap((r) => r.ruches).find((h) => h.id === id)?.nom ?? null;
+const bouton = computed(() => {
+    if (state.apres?.type === 'fin') {
+        return 'C\'est bon, finir le rucher';
+    }
+    const suivante = state.apres?.type === 'ruche' ? nomDe(state.apres.id) : rucheApres.value?.nom;
+
+    return suivante ? `C'est bon, ${suivante}` : 'C\'est bon';
+});
+// Rien de noté : on le dit, plutôt que d'enregistrer une visite vide par un toucher machinal.
+const vide = computed(() => !lignes.value.length && !state.visite?.note && !state.visite?.taches_faites.length);
 </script>
 
 <template>
@@ -33,7 +43,10 @@ const suivante = computed(() => rucheApres.value?.nom ?? null);
                 J'écoute
             </p>
             <h1 class="bn-title mt-1 text-[28px] leading-tight">{{ ruche?.nom }}, c'est bon ?</h1>
-            <p class="mt-1 text-sage">{{ lignes.length }} {{ lignes.length > 1 ? 'points notés' : 'point noté' }}. Dites « c'est bon », ou « corrige » puis la bonne phrase.</p>
+            <p class="mt-1 text-sage">
+                {{ lignes.length }} {{ lignes.length > 1 ? 'points notés' : 'point noté' }}.
+                <template v-if="state.voix.ecoute">Dites « c'est bon », ou « corrige » puis la bonne phrase.</template>
+            </p>
         </section>
 
         <dl v-if="lignes.length" class="bn-card m-0 mx-4 mt-3 px-4 lg:mx-0">
@@ -42,7 +55,10 @@ const suivante = computed(() => rucheApres.value?.nom ?? null);
                 <dd class="m-0 text-right font-semibold">{{ ligne.value }}</dd>
             </div>
         </dl>
-        <p v-else class="bn-card mx-4 mt-3 p-4 font-semibold lg:mx-0">Rien n'est noté pour cette ruche.</p>
+        <div v-else class="bn-card mx-4 mt-3 p-4 lg:mx-0">
+            <p class="font-semibold">Rien n'est noté pour cette ruche.</p>
+            <p class="mt-1 text-muted">Si tout allait bien, enregistrez « rien à signaler ». Sinon, ne l'enregistrez pas.</p>
+        </div>
 
         <p v-if="state.visite.note" class="mx-5 mt-2 font-semibold text-cream-ink lg:mx-1">Note vocale jointe · {{ state.visite.note.duree }} s</p>
         <p v-if="manquants.length" class="mx-5 mt-2 text-sm text-muted lg:mx-1"><strong class="text-ink">Pas noté :</strong> {{ manquants.join(', ') }}</p>
@@ -60,8 +76,9 @@ const suivante = computed(() => rucheApres.value?.nom ?? null);
 
         <div class="fixed bottom-0 left-0 right-0 z-30 bg-ground/95 px-4 pb-4 pt-3 lg:left-60">
             <div class="mx-auto flex max-w-xl flex-col gap-2">
-                <button type="button" class="bn-btn w-full lg:w-full" @click="valider">{{ suivante ? `C'est bon, ${suivante}` : 'C\'est bon' }}</button>
-                <button type="button" class="bn-btn-2 lg:w-full" @click="aller('visite')">Corriger</button>
+                <button type="button" class="bn-btn w-full lg:w-full" @click="valider">{{ vide ? 'Rien à signaler, enregistrer' : bouton }}</button>
+                <button type="button" class="bn-btn-2 lg:w-full" @click="corriger">{{ vide ? 'Revenir à la visite' : 'Corriger' }}</button>
+                <button v-if="vide" type="button" class="min-h-[48px] font-semibold text-rust underline" @click="abandonnerVisite">Ne pas enregistrer</button>
             </div>
         </div>
     </div>

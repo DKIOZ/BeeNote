@@ -5,8 +5,10 @@ import { useTerrain } from '@/terrain/useTerrain.js';
 const { state, rucher, ruchesDuRucher, enAttente, aller, arreterEcoute } = useTerrain();
 
 const faites = computed(() => ruchesDuRucher.value.filter((r) => r.etat === 'done').length);
-const total = computed(() => ruchesDuRucher.value.length);
-const reste = computed(() => ruchesDuRucher.value.filter((r) => r.etat !== 'done' && r.statut !== 'morte'));
+const total = computed(() => ruchesDuRucher.value.filter((r) => r.etat !== 'hors').length);
+const reste = computed(() => ruchesDuRucher.value.filter((r) => r.etat !== 'done' && r.etat !== 'hors'));
+// Les tâches cochées pendant la tournée ne sont pas encore parties : elles ne sont plus « à retenir ».
+const cochees = computed(() => new Set(state.queue.flatMap((item) => item.taches_faites ?? [])));
 const titre = computed(() => {
     if (!faites.value) {
         return 'Aucune ruche notée';
@@ -14,7 +16,7 @@ const titre = computed(() => {
 
     return reste.value.length ? `${faites.value} ${faites.value > 1 ? 'ruches notées' : 'ruche notée'} sur ${total.value}` : 'Rucher terminé !';
 });
-const aRetenir = computed(() => ruchesDuRucher.value.flatMap((r) => r.taches.map((t) => ({ id: t.id, ruche: r.nom, titre: t.titre, retard: t.retard }))));
+const aRetenir = computed(() => ruchesDuRucher.value.flatMap((r) => r.taches.filter((t) => !cochees.value.has(t.id)).map((t) => ({ id: t.id, ruche: r.nom, titre: t.titre, retard: t.retard }))));
 
 onMounted(() => arreterEcoute());
 </script>

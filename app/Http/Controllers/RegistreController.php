@@ -61,13 +61,18 @@ class RegistreController extends Controller
         }
 
         return response()->streamDownload(function () use ($lignes) {
+            $colonnes = [];
             $sortie = fopen('php://output', 'w');
             fwrite($sortie, "\xEF\xBB\xBF");
-            fputcsv($sortie, ['Date', 'Type', 'Ruche', 'Rucher', 'Détail'], ';', escape: '');
+            // Une colonne par information saisie : le tableur peut filtrer et additionner.
+            $colonnes = ['produit' => 'Produit', 'cible' => 'Cible', 'dose' => 'Dose', 'lot' => 'Lot', 'miel' => 'Miel', 'poids_kg' => 'Poids (kg)', 'depuis' => 'Depuis', 'vers' => 'Vers'];
+            fputcsv($sortie, ['Date', 'Type', 'Ruche', 'Rucher', 'Détail', ...array_values($colonnes)], ';', escape: '');
 
             foreach ($lignes as $ligne) {
+                $extra = array_map(fn ($cle) => isset($ligne['champs'][$cle]) ? str_replace('.', ',', (string) $ligne['champs'][$cle]) : '', array_keys($colonnes));
+
                 fputcsv($sortie, array_map([$this, 'celluleSure'], [
-                    $ligne['date'], self::TYPES[$ligne['type']], $ligne['ruche'], $ligne['rucher'], $ligne['detail'],
+                    $ligne['date'], self::TYPES[$ligne['type']], $ligne['ruche'], $ligne['rucher'], $ligne['detail'], ...$extra,
                 ]), ';', escape: '');
             }
 

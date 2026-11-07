@@ -216,19 +216,23 @@ describe('changement de ruche', () => {
         expect(terrain.state.visite.valeurs.humeur_colonie).toBe('calme');
     });
 
-    it('confirmer enregistre la visite et ouvre la ruche demandée', async () => {
+    it('confirmer passe par le récapitulatif, puis ouvre la ruche demandée', async () => {
         const { terrain } = await charger({ enLigne: false });
         await terrain.commencer(11);
         terrain.noter(CALME);
         await terrain.commencer(12);
 
         await terrain.confirmerChangement();
+        expect(terrain.state.vue).toBe('recap');
+        expect(terrain.state.queue).toHaveLength(0);
+
+        await terrain.valider();
 
         expect(terrain.state.visite.ruche_id).toBe(12);
         expect(terrain.state.queue.map((item) => item.ruche_id)).toEqual([11]);
     });
 
-    it('à la voix, nommer une autre ruche enregistre celle en cours', async () => {
+    it('à la voix, nommer une autre ruche passe par le récapitulatif de celle en cours', async () => {
         const { terrain } = await charger({ enLigne: false });
         await terrain.ecouter('modele');
         terrain.choisirRucher(1);
@@ -237,8 +241,21 @@ describe('changement de ruche', () => {
         moteur.phrase('ruche deux');
         await attendre();
 
+        expect(terrain.state.vue).toBe('recap');
+        moteur.phrase("c'est bon");
+        await attendre();
+
         expect(terrain.state.visite.ruche_id).toBe(12);
         expect(terrain.state.queue[0]).toMatchObject({ ruche_id: 11, humeur_colonie: 'calme' });
+    });
+
+    it('« ruche suivante » suit les numéros, même si une ruche plus loin est en retard', async () => {
+        const enRetard = { ruchers: [{ id: 1, nom: 'A', ruches: [ruche(11, 1), ruche(12, 2), ruche(13, 3, { prochaine_visite: AVANT_HIER })], taches: [] }] };
+        const { terrain } = await charger({ local: enRetard, reseau: enRetard, enLigne: false });
+        terrain.choisirRucher(1);
+        await terrain.commencer(11);
+
+        expect(terrain.rucheApres.value.id).toBe(12);
     });
 
     it('« ruche suivante » passe bien à une autre ruche', async () => {
@@ -384,9 +401,10 @@ describe('contre-recette', () => {
         const espion = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => { throw new DOMException('plein', 'QuotaExceededError'); });
 
         const fait = await terrain.commencer(12, null, true);
+        expect(fait).toBe('recap');
+        await terrain.valider();
 
         espion.mockRestore();
-        expect(fait).toBe(false);
         expect(terrain.state.visite.ruche_id).toBe(11);
         expect(terrain.state.erreurStockage).toBe(true);
         expect(store).toBeTruthy();
@@ -430,12 +448,15 @@ describe('enchaînement', () => {
 });
 
 describe('finir le rucher', () => {
-    it('garde la visite en cours quand elle contient des notes', async () => {
+    it('garde la visite en cours, après son récapitulatif', async () => {
         const { terrain } = await charger({ enLigne: false });
         await terrain.commencer(11);
         terrain.noter(CALME);
 
         await terrain.terminerRucher();
+        expect(terrain.state.vue).toBe('recap');
+
+        await terrain.valider();
 
         expect(terrain.state.visite).toBeNull();
         expect(terrain.state.queue).toHaveLength(1);
@@ -488,6 +509,24 @@ describe('commandes selon l\'écran', () => {
 });
 
 describe('état des ruches', () => {
+    it('une ruche morte ou inactive est hors tournée', async () => {
+        const donnees = { ruchers: [{ id: 1, nom: 'A', ruches: [ruche(11, 1, { statut: 'morte' }), ruche(12, 2, { derniere_visite: null })], taches: [] }] };
+        const { terrain } = await charger({ local: donnees, reseau: donnees, enLigne: false });
+        terrain.choisirRucher(1);
+
+        expect(terrain.ruchesDuRucher.value[0].etat).toBe('hors');
+        expect(terrain.prochaineRuche.value.id).toBe(12);
+    });
+
+    it('une ruche sans prochaine visite revient à visiter au bout de trois semaines', async () => {
+        const vieille = jour(new Date(Date.now() - 30 * 864e5));
+        const donnees = { ruchers: [{ id: 1, nom: 'A', ruches: [ruche(11, 1, { derniere_visite: { date: vieille, resume: '' } })], taches: [] }] };
+        const { terrain } = await charger({ local: donnees, reseau: donnees, enLigne: false });
+        terrain.choisirRucher(1);
+
+        expect(terrain.ruchesDuRucher.value[0].etat).toBe('todo');
+    });
+
     it('une ruche jamais visitée est à faire', async () => {
         const jamais = { ruchers: [{ id: 1, nom: 'A', ruches: [ruche(11, 1, { derniere_visite: null })], taches: [] }] };
         const { terrain } = await charger({ local: jamais, reseau: jamais, enLigne: false });

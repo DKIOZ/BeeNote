@@ -6,6 +6,7 @@ import { dateCourte } from '@/terrain/fields.js';
 defineProps({ ruches: { type: Array, required: true } });
 
 const ETATS = { done: 'Visitée aujourd\'hui', todo: 'À visiter', late: 'En retard', next: 'À venir' };
+const etat = (ruche) => (ruche.etat === 'hors' ? (ruche.statut === 'morte' ? 'Morte' : 'Inactive') : ETATS[ruche.etat]);
 
 function aPrevoir(ruche) {
     if (ruche.taches[0]) {
@@ -35,7 +36,7 @@ function aPrevoir(ruche) {
                     </Link>
                 </td>
                 <td class="px-3 py-2 text-muted">{{ ruche.derniere_visite ? dateCourte(ruche.derniere_visite.date) : 'Jamais' }}</td>
-                <td class="px-3 py-2" :class="ruche.etat === 'late' && 'font-semibold text-rust'">{{ ETATS[ruche.etat] }}</td>
+                <td class="px-3 py-2" :class="ruche.etat === 'late' && 'font-semibold text-rust'">{{ etat(ruche) }}</td>
                 <td class="px-5 py-2" :class="ruche.taches[0]?.retard ? 'font-semibold text-rust' : 'text-muted'">{{ aPrevoir(ruche) }}</td>
             </tr>
         </tbody>

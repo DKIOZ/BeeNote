@@ -1,6 +1,32 @@
 import { ACTIONS, DETAILS, FAMILLES, PROCHAINES } from '../fields.js';
 
-const NOMBRES = ['un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix sept', 'dix huit', 'dix neuf', 'vingt'];
+const UNITES = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix sept', 'dix huit', 'dix neuf'];
+const DIZAINES = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante'];
+
+// Nombres de 1 à 99, écrits comme on les dit : « vingt et un », « soixante et onze », « quatre vingt dix ».
+function nombreEnMots(n) {
+    if (n < 20) {
+        return UNITES[n];
+    }
+
+    const base = n < 80 ? Math.floor(n / 10) * 10 - (n >= 70 ? 10 : 0) : 80;
+    const reste = n - base;
+    const mot = base === 80 ? 'quatre vingt' : DIZAINES[base / 10];
+
+    if (reste === 0) {
+        return mot;
+    }
+    if (reste === 1 && base !== 80) {
+        return `${mot} et un`;
+    }
+    if (reste === 11 && base === 60) {
+        return `${mot} et onze`;
+    }
+
+    return `${mot} ${UNITES[reste]}`;
+}
+
+export const NOMBRES = Array.from({ length: 99 }, (_, index) => nombreEnMots(index + 1));
 
 export const COMMANDES = [
     ['ruche suivante', { type: 'ruche_suivante' }],

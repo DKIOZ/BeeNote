@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { computed, reactive } from 'vue';
-import { ACTIONS, ajouterSemaines, jourLocal } from './fields.js';
+import { ACTIONS, ajouterJours, ajouterSemaines, jourLocal } from './fields.js';
+
+// Même valeur que RucherOverview::RAPPEL_JOURS côté serveur.
+const RAPPEL_JOURS = 21;
 import { refreshDonnees } from './prepare.js';
 import { getItem, removeItem, setItem, updateItem } from './store.js';
 import { createVoskEngine, micSupported } from './voice/engine.js';
@@ -19,6 +22,8 @@ const state = reactive({
     visitesDuJour: [],
     // Changement de ruche demandé alors qu'une visite contient déjà des notes.
     changement: null,
+    // Ce qui reprend après le récapitulatif : une autre ruche ou la fin du rucher.
+    apres: null,
     erreurStockage: false,
 
     voix: {
@@ -100,8 +105,13 @@ const ruche = computed(() => {
     return null;
 });
 
+// Même règle que RucherOverview côté serveur.
 function etatRuche(item) {
     const jour = aujourdhui();
+
+    if (item.statut && item.statut !== 'active') {
+        return 'hors';
+    }
 
     if (state.visitesDuJour.includes(item.id) || item.derniere_visite?.date === jour) {
         return 'done';
@@ -113,7 +123,9 @@ function etatRuche(item) {
         return 'late';
     }
 
-    return !item.derniere_visite || dates.includes(jour) ? 'todo' : 'next';
+    const rappel = item.derniere_visite && !item.prochaine_visite ? ajouterJours(item.derniere_visite.date, RAPPEL_JOURS) : null;
+
+    return !item.derniere_visite || dates.includes(jour) || (rappel && rappel <= jour) ? 'todo' : 'next';
 }
 
 function aDuContenu(visite) {
@@ -121,16 +133,15 @@ function aDuContenu(visite) {
 }
 
 const ruchesDuRucher = computed(() => (rucher.value?.ruches ?? []).map((item) => ({ ...item, etat: etatRuche(item) })));
-const prochaineRuche = computed(() => {
-    const encore = ruchesDuRucher.value.filter((h) => h.etat !== 'done' && h.statut !== 'morte');
-
-    return encore.find((h) => h.etat === 'late') ?? encore.find((h) => h.etat === 'todo') ?? encore[0] ?? null;
-});
-// La ruche qui vient après celle en cours : la visite en cours ne compte plus comme à faire.
+// Au rucher, on suit la rangée : la prochaine ruche est le numéro suivant qui reste à faire.
+const aVisiter = computed(() => ruchesDuRucher.value.filter((h) => h.etat !== 'done' && h.etat !== 'hors'));
+const prochaineRuche = computed(() => aVisiter.value[0] ?? null);
+// La ruche qui vient après celle en cours, dans l'ordre des numéros, en repartant du début.
 const rucheApres = computed(() => {
-    const encore = ruchesDuRucher.value.filter((h) => h.etat !== 'done' && h.statut !== 'morte' && h.id !== state.visite?.ruche_id);
+    const courante = ruchesDuRucher.value.find((h) => h.id === state.visite?.ruche_id);
+    const encore = aVisiter.value.filter((h) => h.id !== courante?.id);
 
-    return encore.find((h) => h.etat === 'late') ?? encore.find((h) => h.etat === 'todo') ?? encore[0] ?? null;
+    return encore.find((h) => courante && h.numero > courante.numero) ?? encore[0] ?? null;
 });
 const enAttente = computed(() => state.queue.filter((item) => !item.refusee && !item.noteRefusee));
 const refusees = computed(() => state.queue.filter((item) => item.refusee || item.noteRefusee));
@@ -254,9 +265,10 @@ async function commencer(id, date = null, depuisVoix = false) {
             state.changement = { id, date, depuis: enCours.ruche_id };
             return false;
         }
-        if (!(await enregistrerVisite())) {
-            return false;
-        }
+
+        // À la voix aussi, la ruche en cours passe par son récapitulatif : ses tâches y sont proposées.
+        passerParLeRecap({ type: 'ruche', id, date });
+        return 'recap';
     }
 
     state.rucherId = rucherDeLaRuche(id);
@@ -270,9 +282,24 @@ async function confirmerChangement() {
     const demande = state.changement;
     state.changement = null;
 
-    if (demande && (await enregistrerVisite())) {
-        await commencer(demande.id, demande.date);
+    if (demande) {
+        passerParLeRecap({ type: 'ruche', id: demande.id, date: demande.date });
     }
+}
+
+/**
+ * Toute visite remplie passe par son récapitulatif avant d'être enregistrée :
+ * c'est là que l'apiculteur vérifie et coche les tâches. Ensuite, on reprend la demande.
+ */
+function passerParLeRecap(suite) {
+    state.apres = suite;
+    aller('recap');
+    dire(`${notes.value} notés, c'est bon ?`);
+}
+
+function corriger() {
+    state.apres = null;
+    aller('visite');
 }
 
 function annulerChangement() {
@@ -418,7 +445,7 @@ function executer(action) {
         case 'ruche': {
             const cible = rucher.value?.ruches.find((h) => h.numero === action.numero);
             if (cible) {
-                commencer(cible.id, null, true).then((fait) => fait && confirmer(cible.nom, true));
+                commencer(cible.id, null, true).then((fait) => fait === true && confirmer(cible.nom, true));
             } else {
                 dire('Cette ruche n\'existe pas ici');
             }
@@ -427,7 +454,7 @@ function executer(action) {
         case 'ruche_suivante':
             if (rucheApres.value) {
                 const cible = rucheApres.value;
-                commencer(cible.id, null, true).then((fait) => fait && confirmer(cible.nom, true));
+                commencer(cible.id, null, true).then((fait) => fait === true && confirmer(cible.nom, true));
             } else {
                 dire('Plus de ruche à visiter');
             }
@@ -452,7 +479,7 @@ function executer(action) {
             break;
         case 'annule':
             if (state.vue === 'recap') {
-                aller('visite');
+                corriger();
             } else if (state.vue === 'visite' || state.vue === 'details') {
                 annulerDernier();
             }
@@ -554,12 +581,13 @@ function relacherEcran() {
 }
 
 async function terminerRucher() {
-    // Finir le rucher vaut pour la ruche en cours : ce qui est noté est gardé.
+    // Finir le rucher vaut pour la ruche en cours : elle passe d'abord par son récapitulatif.
     if (aDuContenu(state.visite)) {
-        if (!(await enregistrerVisite())) {
-            return;
-        }
-    } else if (state.visite) {
+        passerParLeRecap({ type: 'fin' });
+        return;
+    }
+
+    if (state.visite) {
         state.visite = null;
         await sauverBrouillon();
     }
@@ -650,8 +678,23 @@ async function enregistrerVisite() {
 
 async function valider() {
     const apresCoup = state.visite?.apres_coup;
+    const suite = state.apres;
 
     if (!(await enregistrerVisite())) {
+        return;
+    }
+
+    state.apres = null;
+
+    if (suite?.type === 'fin') {
+        await terminerRucher();
+        return;
+    }
+
+    if (suite?.type === 'ruche') {
+        const cible = state.donnees?.ruchers.flatMap((r) => r.ruches).find((h) => h.id === suite.id);
+        await commencer(suite.id, suite.date);
+        confirmer(cible?.nom ?? '', state.voix.ecoute);
         return;
     }
 
@@ -678,6 +721,7 @@ async function quitterVisite() {
 }
 
 async function abandonnerVisite() {
+    state.apres = null;
     if (state.visite) {
         await removeItem(`note:${state.visite.client_uuid}`);
     }
@@ -926,6 +970,7 @@ export function useTerrain() {
         ruchesDuRucher,
         prochaineRuche,
         rucheApres,
+        aVisiter,
         enAttente,
         refusees,
         ACTIONS,
@@ -947,6 +992,7 @@ export function useTerrain() {
         supprimerRefusee,
         reessayerRefusee,
         confirmerChangement,
+        corriger,
         annulerChangement,
         signalerAffichage,
         initialiser,

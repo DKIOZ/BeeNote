@@ -90,7 +90,8 @@ class RucheController extends Controller
             ->whereHas('rucher', fn ($q) => $q->where('team_id', $request->user()->current_team_id))
             ->firstOrFail();
 
-        return redirect()->route('ruches.show', $ruche);
+        // Comme sans réseau : scanner une ruche, c'est commencer sa visite.
+        return redirect()->route('terrain', ['ruche' => $ruche->id]);
     }
 
     private function messages(): array

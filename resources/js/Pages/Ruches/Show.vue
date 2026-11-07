@@ -27,10 +27,10 @@ const reine = () => [props.ruche.type && props.ruche.type[0].toUpperCase() + pro
                         <Hex :etat="ruche.etat" :mark="ruche.numero" :couleur="ruche.couleur" :size="62" sur-vert />
                         <div class="min-w-0">
                             <h1 class="bn-title text-4xl leading-tight">{{ ruche.nom }}</h1>
-                            <p class="text-sage">{{ ruche.rucher.nom }}<template v-if="reine()"> · {{ reine() }}</template></p>
+                            <p class="text-sage">{{ ruche.rucher.nom }}<template v-if="ruche.etat === 'hors'"> · {{ ruche.statut === 'morte' ? 'Morte' : 'Inactive' }}, hors tournée</template><template v-if="reine()"> · {{ reine() }}</template></p>
                         </div>
                     </div>
-                    <Link :href="route('terrain', { ruche: ruche.id })" class="bn-btn-flat mt-3 lg:w-full">Commencer une visite</Link>
+                    <Link v-if="ruche.etat !== 'hors'" :href="route('terrain', { ruche: ruche.id })" class="bn-btn-flat mt-3 lg:w-full">Commencer une visite</Link>
                 </section>
 
                 <div class="grid grid-cols-3 gap-2 px-4 pt-3 lg:px-0">

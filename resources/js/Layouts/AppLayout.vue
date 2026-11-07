@@ -89,12 +89,12 @@ const flash = computed(() => page.props.flash ?? {});
                 <Link
                     v-if="index === 2"
                     :href="route('terrain')"
-                    aria-label="Noter une visite à la voix"
                     :aria-current="auRucher ? 'page' : undefined"
-                    class="z-10 -mt-6 mx-1 flex h-[68px] w-[68px] flex-none items-center justify-center self-start rounded-full border-4 bg-forest text-honey shadow-nav"
-                    :class="auRucher ? 'border-honey' : 'border-white'"
+                    class="z-10 -mt-6 mx-1 flex w-[72px] flex-none flex-col items-center self-start text-sm"
+                    :class="auRucher ? 'font-bold text-forest' : 'font-semibold text-muted'"
                 >
-                    <Icon nom="micro" :size="28" />
+                    <span class="flex h-[64px] w-[64px] items-center justify-center rounded-full border-4 bg-forest text-honey shadow-nav" :class="auRucher ? 'border-honey' : 'border-white'"><Icon nom="micro" :size="28" /></span>
+                    Au rucher
                 </Link>
                 <Link
                     :href="item.href()"

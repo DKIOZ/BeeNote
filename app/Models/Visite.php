@@ -100,6 +100,6 @@ class Visite extends Model
             }
         }
 
-        return $parts === [] ? 'Rien de noté' : implode(', ', $parts);
+        return $parts === [] ? 'RAS, rien à signaler' : implode(', ', $parts);
     }
 }

@@ -39,9 +39,13 @@ test('les champs inconnus du modèle restent au toucher', () => {
     assert.ok(!JSON.parse(grammaire()).some((phrase) => /couvain|teigne/.test(phrase)));
 });
 
-test('les ruches se désignent par leur numéro', () => {
+test('les ruches se désignent par leur numéro, jusqu\'à 99', () => {
     assert.equal(matchPhrase('ruche deux').numero, 2);
     assert.equal(matchPhrase('ruche vingt').numero, 20);
+    assert.equal(matchPhrase('ruche vingt et un').numero, 21);
+    assert.equal(matchPhrase('ruche soixante et onze').numero, 71);
+    assert.equal(matchPhrase('ruche quatre vingt').numero, 80);
+    assert.equal(matchPhrase('ruche quatre-vingt-dix-neuf').numero, 99);
 });
 
 test('la grammaire exclut les mots inconnus du modèle et garde [unk]', () => {

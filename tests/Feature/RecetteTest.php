@@ -267,6 +267,48 @@ describe('état des ruches', function () {
     });
 });
 
+describe('panel : logique claire', function () {
+    it('sort une ruche morte ou inactive de la tournée et des comptes', function () {
+        $user = compte();
+        $rucher = rucherAvec($user, ['Ruche 1', 'Ruche 2', 'Ruche 3']);
+        $rucher->ruches[0]->update(['statut' => 'morte']);
+        $rucher->ruches[1]->update(['statut' => 'inactive']);
+
+        $resultat = RucherOverview::ruchers($user)->first();
+
+        expect($resultat['ruches']->pluck('etat')->all())->toBe(['hors', 'hors', 'todo']);
+        expect($resultat['a_visiter'])->toBe(1);
+    });
+
+    it('rappelle une ruche visitée sans date prévue au bout de trois semaines', function () {
+        $user = compte();
+        $rucher = rucherAvec($user, ['Ruche 1', 'Ruche 2']);
+        visiteDe($rucher->ruches[0], $user, ['date_visite' => now()->subDays(30)->toDateString()]);
+        visiteDe($rucher->ruches[1], $user, ['date_visite' => now()->subDays(5)->toDateString()]);
+
+        expect(RucherOverview::ruchers($user)->first()['ruches']->pluck('etat')->all())->toBe(['todo', 'next']);
+    });
+
+    it('écrit « RAS » pour une visite où rien n\'a été noté', function () {
+        $user = compte();
+        expect(visiteDe(rucherAvec($user)->ruches->first(), $user)->resume())->toBe('RAS, rien à signaler');
+    });
+
+    it('donne une colonne par information dans le CSV', function () {
+        $user = compte();
+        $ruche = rucherAvec($user)->ruches->first();
+        $this->actingAs($user)->post(route('noter.store', 'traitement'), ['ruche_ids' => [$ruche->id], 'date_traitement' => now()->toDateString(), 'type_traitement' => 'varroa', 'produit_utilise' => 'Apivar', 'numero_lot' => 'AV1']);
+
+        $lignes = array_map(fn ($l) => str_getcsv($l, ';', '"', ''), explode("\n", trim($this->get('/registre/fichier?format=csv&depuis=2000-01-01&jusqu=2100-01-01')->streamedContent())));
+        $entete = array_map(fn ($c) => trim($c, "\xEF\xBB\xBF"), $lignes[0]);
+        $traitement = array_combine($entete, $lignes[1]);
+
+        expect($traitement['Produit'])->toBe('Apivar');
+        expect($traitement['Lot'])->toBe('AV1');
+        expect($traitement['Cible'])->toBe('varroa');
+    });
+});
+
 describe('panel : registre juste', function () {
     it('écrit le type de miel, et annonce le total d\'une récolte sur plusieurs ruches', function () {
         $user = compte();
