@@ -19,7 +19,8 @@ class DashboardController extends Controller
             ->where('statut', 'a_faire')
             // Une ruche à la corbeille n'a plus de page : sa tâche attend avec elle.
             ->whereHas('rucher')
-            ->where(fn ($q) => $q->whereNull('ruche_id')->orWhereHas('ruche'))
+            // Une ruche morte ou inactive n'a plus de travail à faire.
+            ->where(fn ($q) => $q->whereNull('ruche_id')->orWhereHas('ruche', fn ($r) => $r->where(fn ($s) => $s->whereNull('statut')->orWhere('statut', 'active'))))
             ->with(['ruche:id,nom', 'rucher:id,nom'])
             ->orderBy('date_prevue')
             ->limit(20)

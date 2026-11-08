@@ -36,7 +36,9 @@ const etatSuivante = computed(() => {
 
     const alerte = ruche.alertes?.length ? ` À surveiller : ${ruche.alertes.join(', ')}.` : '';
 
-    return ruche.taches[0]?.titre ?? (ruche.derniere_visite ? `Dernière visite le ${dateCourte(ruche.derniere_visite.date)} : ${ruche.derniere_visite.resume}.${alerte}` : 'Pas encore de visite');
+    const base = ruche.derniere_visite ? `Dernière visite le ${dateCourte(ruche.derniere_visite.date).replace(/\.$/, '')} : ${ruche.derniere_visite.resume}.` : 'Pas encore de visite.';
+
+    return `${ruche.taches[0] ? `À faire : ${ruche.taches[0].titre}. ` : ''}${base}${alerte}`;
 });
 
 const basculerEcoute = () => (state.voix.ecoute ? arreterEcoute() : ecouter(page.props.voiceModelUrl));

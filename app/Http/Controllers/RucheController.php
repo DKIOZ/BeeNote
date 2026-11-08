@@ -47,6 +47,8 @@ class RucheController extends Controller
                 'etat' => $apercu['etat'],
                 'taches' => $apercu['taches'],
                 'prochaine_visite' => $apercu['prochaine_visite'],
+                'rappel' => $apercu['rappel'],
+                'alertes' => $apercu['alertes'],
             ],
             'historique' => RegistreService::pourRuche($ruche),
             'peutModifier' => $request->user()->can('update', $ruche->rucher),
@@ -96,21 +98,22 @@ class RucheController extends Controller
 
     private function messages(): array
     {
-        return ['nom.unique' => 'Une autre ruche porte déjà ce nom. Choisissez-en un autre, par exemple avec un autre numéro.'];
+        return ['nom.unique' => 'Une autre ruche porte déjà ce nom, peut-être à la corbeille. Choisissez-en un autre, par exemple avec un autre numéro.'];
     }
 
     private function rules(int $teamId, ?Ruche $ruche = null): array
     {
         // Le nom sert au registre, aux étiquettes et à la voix : il est unique sur tout le compte.
+        // Une ruche à la corbeille garde son nom : ses traitements ne doivent pas passer à une autre.
         $nomPris = Rule::unique('ruches', 'nom')
-            ->where(fn ($q) => $q->whereNull('deleted_at')->whereIn('rucher_id', Rucher::where('team_id', $teamId)->select('id')))
+            ->where(fn ($q) => $q->whereIn('rucher_id', Rucher::withTrashed()->where('team_id', $teamId)->select('id')))
             ->ignore($ruche?->id);
 
         // Le numéro porté par le nom ne doit pas être celui d'une autre ruche du compte.
         $numeroPris = function (string $attribut, $valeur, $echec) use ($teamId, $ruche) {
             $numero = RucherOverview::numeroDuNom((string) $valeur);
-            $autre = $numero ? Ruche::where('numero', $numero)
-                ->whereHas('rucher', fn ($q) => $q->where('team_id', $teamId))
+            $autre = $numero ? Ruche::withTrashed()->where('numero', $numero)
+                ->whereHas('rucher', fn ($q) => $q->withTrashed()->where('team_id', $teamId))
                 ->when($ruche, fn ($q) => $q->whereKeyNot($ruche->id))
                 ->value('nom') : null;
 

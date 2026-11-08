@@ -546,7 +546,7 @@ describe('état des ruches', () => {
 });
 
 describe('panel 2 : tour 1', () => {
-    it('retoucher une ruche faite rouvre sa visite encore sur le téléphone, sans doublon', async () => {
+    it('retoucher une ruche faite ouvre un complément sans toucher à la visite du matin', async () => {
         const { terrain } = await charger({ enLigne: false });
         terrain.choisirRucher(1);
         await terrain.commencer(11);
@@ -557,8 +557,14 @@ describe('panel 2 : tour 1', () => {
         await terrain.abandonnerVisite();
         await terrain.commencer(11);
 
-        expect(terrain.state.visite.valeurs.humeur_colonie).toBe('calme');
-        expect(terrain.state.queue).toHaveLength(0);
+        expect(terrain.state.visite.complement).toBe(true);
+        expect(terrain.state.visite.deja.resume).toContain('Calme');
+        expect(terrain.state.queue).toHaveLength(1);
+
+        // Abandonner le complément n'efface que le complément.
+        await terrain.abandonnerVisite();
+        expect(terrain.state.queue).toHaveLength(1);
+        expect(terrain.ruchesDuRucher.value.find((r) => r.id === 11).etat).toBe('done');
     });
 
     it('une ruche déjà envoyée aujourd\'hui se complète, annoncé à l\'écran', async () => {
@@ -612,5 +618,18 @@ describe('panel 2 : tour 1', () => {
 
         expect(terrain.state.vue).toBe('tournee');
         expect(terrain.state.rucherId).toBe(2);
+    });
+});
+
+describe('panel 2 : tour 2', () => {
+    it('rend les visites mises de côté, même après une déconnexion', async () => {
+        const { store } = await charger({ enLigne: false });
+        await store.setItem('compte:1', { file: [{ client_uuid: 'gardee', ruche_id: 11 }], brouillon: null });
+
+        const { prepareOffline } = await import('./prepare.js');
+        await prepareOffline(1);
+
+        expect((await store.getItem('queue')).map((v) => v.client_uuid)).toEqual(['gardee']);
+        expect(await store.getItem('compte:1')).toBeUndefined();
     });
 });

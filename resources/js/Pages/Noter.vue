@@ -113,9 +113,9 @@ function enregistrer() {
                             type="button"
                             :aria-pressed="form.ruche_ids.includes(ruche.id)"
                             class="min-h-[56px] rounded-2xl border-[1.5px] px-1 font-semibold"
-                            :class="form.ruche_ids.includes(ruche.id) ? 'border-forest bg-forest text-white' : 'border-line bg-white text-ink'"
+                            :class="form.ruche_ids.includes(ruche.id) ? 'border-forest bg-forest text-white' : ruche.statut && ruche.statut !== 'active' ? 'border-dashed border-line bg-soft text-muted' : 'border-line bg-white text-ink'"
                             @click="bascule(ruche.id)"
-                        >{{ ruche.nom }}</button>
+                        >{{ ruche.nom }}<span v-if="ruche.statut && ruche.statut !== 'active'" class="block text-sm font-normal">{{ ruche.statut === 'morte' ? 'morte' : 'inactive' }}</span></button>
                         <button type="button" :aria-pressed="toutesCochees" class="min-h-[56px] rounded-2xl border-[1.5px] font-semibold" :class="toutesCochees ? 'border-forest bg-forest text-white' : 'border-line bg-white text-ink'" @click="basculeToutes">Toutes</button>
                     </div>
                     <p v-if="form.errors.ruche_ids" class="mt-1 text-sm font-semibold text-rust">Choisissez au moins une ruche.</p>
@@ -126,6 +126,7 @@ function enregistrer() {
                     <Field id="type_traitement" v-model="form.type_traitement" label="Contre" :options="[{ value: 'varroa', text: 'Varroa' }, { value: 'nosema', text: 'Nosémose' }, { value: 'loque', text: 'Loque' }, { value: 'preventif', text: 'Préventif' }, { value: 'frelon_asiatique', text: 'Frelon asiatique' }, { value: 'autre', text: 'Autre' }]" :erreur="form.errors.type_traitement" />
                     <Field id="dose" v-model="form.dosage" label="Dose" placeholder="Ex. : 5 ml" :erreur="form.errors.dosage" />
                     <Field id="lot" v-model="form.numero_lot" label="Numéro de lot" :erreur="form.errors.numero_lot" />
+                    <p v-if="!form.numero_lot" class="-mt-2 text-sm text-muted">Sans numéro de lot, le registre indiquera « lot non noté ». Il figure sur la boîte du médicament.</p>
                     <Field id="date_t" v-model="form.date_traitement" type="date" label="Date" :max="aujourdhui" :erreur="form.errors.date_traitement" required />
                     <p class="text-muted">Ces informations alimentent votre registre.</p>
                 </template>

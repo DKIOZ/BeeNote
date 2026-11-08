@@ -28,7 +28,11 @@ class RucherOverview
             ->get();
 
         return Rucher::where('team_id', $teamId)
-            ->with(['ruches' => fn ($q) => $q->orderBy('id')->with('derniereVisite')])
+            ->with(['ruches' => fn ($q) => $q->orderBy('id')->with([
+                'derniereVisite',
+                // Les visites des trois derniers mois suffisent pour savoir ce qui reste à surveiller.
+                'visites' => fn ($v) => $v->where('date_visite', '>=', now()->subMonths(3)->toDateString())->orderByDesc('date_visite')->orderByDesc('id'),
+            ])])
             ->orderBy('nom')
             ->get()
             ->map(function (Rucher $rucher) use ($taches, $today) {
@@ -98,7 +102,8 @@ class RucherOverview
 
     public static function numeroDuNom(string $nom): ?int
     {
-        return preg_match('/(\d+)\s*$/', $nom, $trouve) && (int) $trouve[1] > 0 ? (int) $trouve[1] : null;
+        // Au-delà de 9 999, ce n'est plus un numéro de ruche : on ne le retient pas.
+        return preg_match('/(\d+)\s*$/', $nom, $trouve) && (int) $trouve[1] > 0 && (int) $trouve[1] <= 9999 ? (int) $trouve[1] : null;
     }
 
     private static function ruche($ruche, int $numero, Collection $taches, string $today): array
@@ -138,7 +143,7 @@ class RucherOverview
             'visitee' => $visitee,
             'rappel' => $rappel,
             // Une ruche peut être à jour et pourtant à surveiller : ce qu'on a vu la dernière fois le dit.
-            'alertes' => $etat === 'hors' ? [] : ($visite?->alertes() ?? []),
+            'alertes' => $etat === 'hors' ? [] : Visite::alertesDe($ruche->visites),
             'prochaine_visite' => $prochaine,
             'derniere_visite' => $visite ? [
                 'id' => $visite->id,

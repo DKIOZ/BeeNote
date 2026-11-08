@@ -147,11 +147,24 @@ class TerrainController extends Controller
         $chemin = $dossier.'/'.Str::random(40);
         Storage::disk('local')->put($chemin, file_get_contents($data['note']->getRealPath()));
 
-        if ($visite->note_audio_path) {
-            Storage::disk('local')->delete($visite->note_audio_path);
-        }
+        // La première note reçue devient la note de la visite ; les suivantes s'y ajoutent.
+        $premierEnvoi = $visite->client_uuid === $uuid || ! $visite->note_audio_path;
 
-        $visite->forceFill(['note_audio_path' => $chemin, 'note_audio_duree' => $data['duree'] ?? null])->save();
+        if ($premierEnvoi) {
+            // Le même envoi qui revient remplace sa propre note.
+            if ($visite->note_audio_path) {
+                Storage::disk('local')->delete($visite->note_audio_path);
+            }
+            $visite->forceFill(['note_audio_path' => $chemin, 'note_audio_duree' => $data['duree'] ?? null])->save();
+        } else {
+            // Une visite complétée dans la journée ajoute sa note, sans effacer celle du matin.
+            $ajoutees = collect($visite->notes_audio_ajoutees ?? [])->reject(fn ($note) => ($note['uuid'] ?? null) === $uuid);
+            $remplacee = collect($visite->notes_audio_ajoutees ?? [])->firstWhere('uuid', $uuid);
+            if ($remplacee) {
+                Storage::disk('local')->delete($remplacee['chemin']);
+            }
+            $visite->forceFill(['notes_audio_ajoutees' => $ajoutees->push(['uuid' => $uuid, 'chemin' => $chemin, 'duree' => $data['duree'] ?? null])->values()->all()])->save();
+        }
 
         return response()->json(['statut' => 'recue']);
     }

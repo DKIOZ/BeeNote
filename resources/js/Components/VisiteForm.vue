@@ -29,7 +29,7 @@ const optionsNourriture = (groupe) => [{ value: '', text: 'Pas noté' }, ...grou
             :id="groupe.id"
             :key="groupe.id"
             v-model="form[groupe.id]"
-            :label="groupe.label"
+            :label="groupe.aide ? `${groupe.label} · ${groupe.aide}` : groupe.label"
             :options="groupe.id === 'type_nourrissement' ? optionsNourriture(groupe) : options(groupe)"
             :erreur="form.errors[groupe.id]"
         />

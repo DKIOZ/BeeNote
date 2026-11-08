@@ -29,15 +29,20 @@ trait GardeLeRucher
      * Un déplacement ajouté, corrigé ou annulé change le rucher des saisies de la ruche.
      * La date de modification de chaque saisie ne bouge pas : rien n'a été corrigé à la main.
      */
-    public static function recalculerPourRuche(int $rucheId): void
+    public static function recalculerPourRuche(int $rucheId): int
     {
-        static::withTrashed()->where('ruche_id', $rucheId)->each(function ($modele) {
+        $changees = 0;
+
+        static::withTrashed()->where('ruche_id', $rucheId)->each(function ($modele) use (&$changees) {
             $rucher = self::rucherALaDate($modele);
 
             if ($modele->rucher_id !== $rucher) {
                 $modele->newQueryWithoutScopes()->whereKey($modele->getKey())->toBase()->update(['rucher_id' => $rucher]);
+                $changees++;
             }
         });
+
+        return $changees;
     }
 
     private static function rucherALaDate($modele): ?int

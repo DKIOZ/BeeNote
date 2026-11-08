@@ -5,7 +5,7 @@ import Icon from '@/Components/Icon.vue';
 import { compterNotes } from '@/terrain/fields.js';
 import { useTerrain } from '@/terrain/useTerrain.js';
 
-const { state, ruche, enAttente, aller, choisirRucher, commencer } = useTerrain();
+const { state, ruche, enAttente, aller, choisirRucher, commencer, aVisiterDans } = useTerrain();
 const ruchers = computed(() => state.donnees?.ruchers ?? []);
 const notes = computed(() => compterNotes(state.visite?.valeurs));
 </script>
@@ -42,7 +42,7 @@ const notes = computed(() => compterNotes(state.visite?.valeurs));
                 <button v-for="rucher in ruchers" :key="rucher.id" type="button" class="bn-card flex w-full items-center justify-between gap-3 p-3.5 text-left" @click="choisirRucher(rucher.id)">
                     <span class="min-w-0">
                         <span class="block text-lg font-semibold">{{ rucher.nom }}</span>
-                        <span class="block text-sm text-muted">{{ rucher.ruches.length }} {{ rucher.ruches.length > 1 ? 'ruches' : 'ruche' }}<template v-if="rucher.a_visiter"> · {{ rucher.a_visiter }} à visiter</template></span>
+                        <span class="block text-sm text-muted">{{ rucher.ruches.length }} {{ rucher.ruches.length > 1 ? 'ruches' : 'ruche' }}<template v-if="aVisiterDans(rucher)"> · {{ aVisiterDans(rucher) }} à visiter</template></span>
                         <Comb class="mt-2" :ruches="rucher.ruches.slice(0, 6)" :size="36" :par-ligne="6" />
                     </span>
                     <Icon nom="suite" :size="20" />

@@ -16,7 +16,7 @@ class LimiteComptes
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->isMethod('get') && $request->is('register', 'forgot-password', 'reset-password', 'user/confirm-password', 'user/password')) {
+        if (! $request->isMethod('get') && $request->is('register', 'forgot-password', 'reset-password', 'user/confirm-password', 'user/password', 'user/profile-information')) {
             $cle = 'comptes:'.$request->path().'|'.$request->ip();
 
             abort_if(RateLimiter::tooManyAttempts($cle, self::ESSAIS_PAR_MINUTE), 429);

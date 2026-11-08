@@ -77,7 +77,7 @@ class CorbeilleController extends Controller
 
             // Le nom et le numéro ont pu être repris pendant que la ruche était à la corbeille.
             if ($this->dejaPrise($ruche, $teamId)) {
-                return back()->with('erreur', "Une autre ruche s'appelle déjà « {$ruche->nom} » ou porte son numéro. Renommez-la d'abord.");
+                return back()->with('erreur', "Une ruche active s'appelle déjà « {$ruche->nom} » ou porte le même numéro. Mettez-la à la corbeille, ou donnez-lui un autre nom avec un autre numéro, puis remettez celle-ci.");
             }
 
             $ruche->restore();
@@ -85,6 +85,11 @@ class CorbeilleController extends Controller
             abort_unless(isset(self::MODELES[$type]), 404);
             $ligne = self::MODELES[$type]::onlyTrashed()->where('team_id', $teamId)->whereHas('ruche')->findOrFail($id);
             $this->authorizeRestauration($request, $ligne->ruche->rucher);
+
+            // Un déplacement ne revient que s'il reste le dernier de la ruche : sinon la chaîne se casserait.
+            if ($type === 'deplacement' && RucheEmplacement::where('ruche_id', $ligne->ruche_id)->where('id', '>', $ligne->id)->exists()) {
+                return back()->with('erreur', 'Cette ruche a été déplacée depuis : ce déplacement ne peut plus revenir.');
+            }
 
             DB::transaction(function () use ($ligne, $type, $teamId) {
                 $ligne->restore();

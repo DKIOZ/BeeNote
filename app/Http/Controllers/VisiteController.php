@@ -10,6 +10,7 @@ use App\Support\VisiteFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class VisiteController extends Controller
@@ -31,6 +32,18 @@ class VisiteController extends Controller
         $data = $request->validate($this->rules());
         $ruche = Ruche::findOrFail($data['ruche_id']);
         $this->authorizeRuche($ruche, 'update');
+
+        // Même règle qu'au rucher : une seule visite par ruche et par jour, la seconde la complète.
+        $duJour = Visite::where('team_id', $request->user()->current_team_id)
+            ->where('ruche_id', $ruche->id)
+            ->whereDate('date_visite', $data['date_visite'])
+            ->first();
+
+        if ($duJour) {
+            $duJour->fill(VisiteFields::completer($duJour, VisiteFields::clean($data)))->save();
+
+            return redirect()->route('ruches.show', $ruche)->with('message', 'Ajouté à la visite déjà notée ce jour-là.');
+        }
 
         $visite = new Visite(VisiteFields::clean($data));
         $visite->ruche_id = $ruche->id;
@@ -64,6 +77,17 @@ class VisiteController extends Controller
         $ruche = Ruche::findOrFail($data['ruche_id']);
         $this->authorizeRuche($ruche, 'update');
 
+        $autre = Visite::where('team_id', $request->user()->current_team_id)
+            ->where('ruche_id', $ruche->id)
+            ->whereDate('date_visite', $data['date_visite'])
+            ->whereKeyNot($visite->id)
+            ->exists();
+
+        // Une seule visite par ruche et par jour : on ne crée pas de doublon en corrigeant.
+        if ($autre) {
+            throw ValidationException::withMessages(['ruche_id' => "{$ruche->nom} a déjà une visite ce jour-là. Corrigez plutôt celle-ci."]);
+        }
+
         $visite->fill(VisiteFields::clean($data));
         $visite->ruche_id = $ruche->id;
         $visite->save();
@@ -80,12 +104,13 @@ class VisiteController extends Controller
         return redirect()->route('ruches.show', $rucheId)->with('message', 'Visite mise à la corbeille.');
     }
 
-    public function note(Visite $visite)
+    public function note(Request $request, Visite $visite)
     {
         $this->authorizeVisite($visite);
-        abort_unless($visite->note_audio_path && Storage::disk('local')->exists($visite->note_audio_path), 404);
+        $chemin = $visite->cheminsAudio()[$request->integer('numero')] ?? null;
+        abort_unless($chemin && Storage::disk('local')->exists($chemin), 404);
 
-        return response()->file(Storage::disk('local')->path($visite->note_audio_path), [
+        return response()->file(Storage::disk('local')->path($chemin), [
             'Content-Disposition' => 'inline; filename="note.audio"',
             'Cache-Control' => 'private, no-store',
         ]);

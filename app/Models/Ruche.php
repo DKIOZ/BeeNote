@@ -51,11 +51,14 @@ class Ruche extends Model
     /**
      * Après un changement de déplacement, chaque saisie retrouve le rucher de sa date.
      */
-    public function recalculerRegistre(): void
+    public function recalculerRegistre(): int
     {
+        $changees = 0;
         foreach ([Visite::class, Traitement::class, Recolte::class] as $modele) {
-            $modele::recalculerPourRuche($this->id);
+            $changees += $modele::recalculerPourRuche($this->id);
         }
+
+        return $changees;
     }
 
     /**
@@ -66,7 +69,7 @@ class Ruche extends Model
         $teamId = Rucher::withTrashed()->whereKey($this->rucher_id)->value('team_id');
         $numero = RucherOverview::numeroDuNom((string) $this->nom);
 
-        if ($numero && ! self::where('numero', $numero)->whereHas('rucher', fn ($q) => $q->where('team_id', $teamId))->exists()) {
+        if ($numero && ! self::withTrashed()->where('numero', $numero)->whereHas('rucher', fn ($q) => $q->withTrashed()->where('team_id', $teamId))->exists()) {
             return $numero;
         }
 

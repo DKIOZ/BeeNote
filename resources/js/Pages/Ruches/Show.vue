@@ -30,6 +30,8 @@ const reine = () => [props.ruche.type && props.ruche.type[0].toUpperCase() + pro
                             <p class="text-sage">{{ ruche.rucher.nom }}<template v-if="ruche.etat === 'hors'"> · {{ ruche.statut === 'morte' ? 'Morte' : 'Inactive' }}, hors tournée</template><template v-if="reine()"> · {{ reine() }}</template></p>
                         </div>
                     </div>
+                    <p v-if="ruche.etat !== 'hors' && (ruche.prochaine_visite || ruche.rappel)" class="mt-2 text-sage">{{ ruche.prochaine_visite ? `Prochaine visite le ${dateCourte(ruche.prochaine_visite)}` : `À revoir vers le ${dateCourte(ruche.rappel)}` }}</p>
+                    <p v-if="ruche.alertes?.length" class="mt-2 rounded-2xl bg-peach px-3 py-2 font-semibold text-rust">À surveiller : {{ ruche.alertes.join(', ') }}</p>
                     <Link v-if="ruche.etat !== 'hors'" :href="route('terrain', { ruche: ruche.id })" class="bn-btn-flat mt-3 lg:w-full">Commencer une visite</Link>
                 </section>
 

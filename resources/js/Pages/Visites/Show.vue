@@ -47,9 +47,9 @@ const sous = () => [v.ruche.nom, meteo(), props.modifiee && `Modifiée le ${prop
     <AppLayout :title="`Visite du ${dateCourte(v.date_visite)}`" sans-nav>
         <BackBar :href="route('ruches.show', v.ruche_id)" :titre="`Visite du ${dateCourte(v.date_visite)}`" :sous="sous()" retour="Retour à la ruche" />
 
-        <div v-if="v.a_note_audio" class="mx-4 mb-3 flex items-center gap-3 rounded-2xl bg-cream p-3 text-cream-ink lg:mx-0">
-            <span class="font-semibold">Note vocale<template v-if="v.note_audio_duree"> · {{ v.note_audio_duree }} s</template></span>
-            <audio controls preload="none" class="min-w-0 flex-1" :src="route('visites.note', v.id)" />
+        <div v-for="note in v.notes_audio" :key="note.numero" class="mx-4 mb-3 flex items-center gap-3 rounded-2xl bg-cream p-3 text-cream-ink lg:mx-0">
+            <span class="font-semibold">Note vocale<template v-if="v.notes_audio.length > 1"> {{ note.numero + 1 }}</template><template v-if="note.duree"> · {{ note.duree }} s</template></span>
+            <audio controls preload="none" class="min-w-0 flex-1" :src="route('visites.note', { visite: v.id, numero: note.numero })" />
         </div>
 
         <form class="px-4 pb-6 pt-2 lg:rounded-card lg:bg-white lg:p-6 lg:shadow-card" @submit.prevent="enregistrer">

@@ -14,8 +14,8 @@ Artisan::command('beenote:vider-corbeille', function () {
     $limite = now()->subDays(config('beenote.corbeille_jours'));
 
     $effacerNote = function (Visite $visite) {
-        if ($visite->note_audio_path) {
-            Storage::disk('local')->delete($visite->note_audio_path);
+        foreach ($visite->cheminsAudio() as $chemin) {
+            Storage::disk('local')->delete($chemin);
         }
     };
 

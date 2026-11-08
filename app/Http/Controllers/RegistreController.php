@@ -6,11 +6,14 @@ use App\Models\Rucher;
 use App\Services\RegistreService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class RegistreController extends Controller
 {
     public const PDF_MAX = 1000;
+
+    public const PDF_MAX_CARACTERES = 200000;
 
     private const TYPES = ['visite' => 'Visite', 'traitement' => 'Traitement', 'recolte' => 'Récolte', 'deplacement' => 'Déplacement'];
 
@@ -58,12 +61,14 @@ class RegistreController extends Controller
 
         if ($data['format'] === 'pdf') {
             // Au-delà, la mise en page PDF épuise la mémoire du serveur. Le tableur n'a pas de limite.
-            if ($lignes->count() > self::PDF_MAX) {
-                return back()->withErrors(['format' => 'Plus de '.self::PDF_MAX." lignes sur cette période : choisissez le format tableur, ou une période plus courte."]);
+            // Les notes longues pèsent autant que des lignes : on compte aussi le texte.
+            if ($lignes->count() > self::PDF_MAX || $lignes->sum(fn ($ligne) => mb_strlen($ligne['detail'])) > self::PDF_MAX_CARACTERES) {
+                return redirect()->route('registre.export-form')->withErrors(['format' => 'Plus de '.self::PDF_MAX." lignes sur cette période : choisissez le format tableur, ou une période plus courte."]);
             }
 
             return Pdf::loadView('pdf.registre', [
-                'lignes' => $lignes,
+                // Dans le PDF, une note est coupée : le tableur la donne en entier.
+                'lignes' => $lignes->map(fn ($ligne) => [...$ligne, 'detail' => Str::limit($ligne['detail'], 400)]),
                 'types' => self::TYPES,
                 'depuis' => $data['depuis'],
                 'jusqu' => $data['jusqu'],
@@ -80,7 +85,8 @@ class RegistreController extends Controller
             fputcsv($sortie, ['Date', 'Type', 'Ruche', 'Rucher', 'Détail', ...array_values($colonnes)], ';', escape: '');
 
             foreach ($lignes as $ligne) {
-                $extra = array_map(fn ($cle) => isset($ligne['champs'][$cle]) ? str_replace('.', ',', (string) $ligne['champs'][$cle]) : '', array_keys($colonnes));
+                // Seul le poids est un nombre : un lot « B.24.117 » ou une note gardent leurs points.
+                $extra = array_map(fn ($cle) => ! isset($ligne['champs'][$cle]) ? '' : ($cle === 'poids_kg' ? str_replace('.', ',', (string) $ligne['champs'][$cle]) : (string) $ligne['champs'][$cle]), array_keys($colonnes));
 
                 fputcsv($sortie, array_map([$this, 'celluleSure'], [
                     $ligne['date'], self::TYPES[$ligne['type']], $ligne['ruche'], $ligne['rucher'], $ligne['detail'], ...$extra,

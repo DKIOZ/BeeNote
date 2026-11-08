@@ -94,9 +94,12 @@ const annuler = () => {
                 <Link :href="route('ruchers.create')" class="bn-btn-flat mt-5">Créer mon rucher</Link>
             </section>
             <ol class="mx-4 mt-5 flex flex-col gap-2.5 lg:mx-0">
-                <li v-for="(etape, index) in ['Créez votre rucher et ses ruches', 'Préparez le téléphone pour le rucher', 'Notez votre première visite']" :key="etape" class="bn-card flex min-h-[64px] items-center gap-3 px-3.5 py-2 font-semibold">
-                    <Hex etat="todo" :mark="index + 1" :size="38" />
-                    {{ etape }}
+                <li v-for="(etape, index) in [['Créez votre rucher et ses ruches', route('ruchers.create')], ['Préparez le téléphone pour le rucher', route('demarrage')], ['Notez votre première visite', null]]" :key="etape[0]">
+                    <component :is="etape[1] ? Link : 'div'" :href="etape[1] ?? undefined" class="bn-card flex min-h-[64px] items-center gap-3 px-3.5 py-2 font-semibold">
+                        <Hex etat="todo" :mark="index + 1" :size="38" />
+                        <span class="flex-1">{{ etape[0] }}</span>
+                        <Icon v-if="etape[1]" nom="suite" :size="20" />
+                    </component>
                 </li>
             </ol>
         </template>
@@ -110,7 +113,7 @@ const annuler = () => {
                 </div>
                 <div class="flex flex-none items-center gap-3">
                     <Link v-if="attente" :href="route('terrain') + '#synchro'" class="bn-btn-2">{{ attente }} à envoyer</Link>
-                    <Link :href="route('visites.create')" class="bn-btn">Noter une visite</Link>
+                    <Link :href="route('visites.create')" class="bn-btn">Noter une visite déjà faite</Link>
                 </div>
             </header>
 
@@ -134,13 +137,13 @@ const annuler = () => {
                 </div>
             </section>
 
-            <Link v-if="enCours" :href="route('terrain')" class="mx-4 mt-3 flex min-h-[60px] items-center justify-between gap-3 rounded-card bg-cream px-4 py-2 text-cream-ink lg:mx-0">
+            <a v-if="enCours" :href="route('terrain', { ruche: enCours.ruche_id })" class="mx-4 mt-3 flex min-h-[60px] items-center justify-between gap-3 rounded-card bg-cream px-4 py-2 text-cream-ink lg:mx-0">
                 <span>
                     <span class="block font-semibold">Visite en cours : {{ enCours.nom ?? 'une ruche' }}</span>
                     <span class="block text-sm">{{ compterNotes(enCours.valeurs) }} points notés, rien n'est perdu</span>
                 </span>
                 <span class="font-bold">Reprendre</span>
-            </Link>
+            </a>
 
             <section v-if="aSurveiller.length" class="mx-4 mt-3 rounded-card bg-peach p-4 text-rust lg:mx-0">
                 <h2 class="font-bold">À surveiller</h2>

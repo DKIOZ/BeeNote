@@ -8,7 +8,8 @@ import { TOUS_LES_GROUPES } from '@/terrain/fields.js';
 
 const props = defineProps({ ruchers: Array, rucheId: Number, aujourdhui: String });
 
-const premiere = computed(() => props.rucheId ?? props.ruchers.flatMap((r) => r.ruches)[0]?.id ?? null);
+// Aucune ruche choisie d'office : on choisit celle qu'on a visitée.
+const premiere = computed(() => props.rucheId ?? null);
 
 const form = useForm({
     ruche_id: premiere.value,
@@ -33,8 +34,8 @@ function enregistrer() {
 </script>
 
 <template>
-    <AppLayout title="Noter une visite" sans-nav>
-        <BackBar :href="route('dashboard')" titre="Noter une visite" sous="Pour une visite déjà faite." />
+    <AppLayout title="Noter une visite déjà faite" sans-nav>
+        <BackBar :href="route('dashboard')" titre="Noter une visite déjà faite" sous="Au rucher, notez plutôt sur le téléphone, à la voix ou au toucher." />
 
         <form class="px-4 pb-6 pt-2 lg:rounded-card lg:bg-white lg:p-6 lg:shadow-card" @submit.prevent="enregistrer">
             <VisiteForm :form="form" :ruchers="ruchers" :max="aujourdhui" />

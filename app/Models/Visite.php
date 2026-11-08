@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\GardeLeRucher;
+use App\Support\VisiteFields;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -15,9 +16,9 @@ class Visite extends Model
     protected $guarded = ['id', 'team_id', 'user_id', 'ruche_id', 'rucher_id', 'client_uuid', 'note_audio_path', 'note_audio_duree'];
 
     // Le chemin du fichier audio ne quitte jamais le serveur.
-    protected $hidden = ['note_audio_path', 'client_uuid'];
+    protected $hidden = ['note_audio_path', 'client_uuid', 'uuids_fusionnes', 'notes_audio_ajoutees'];
 
-    protected $appends = ['a_note_audio'];
+    protected $appends = ['a_note_audio', 'notes_audio'];
 
     protected function casts(): array
     {
@@ -28,12 +29,35 @@ class Visite extends Model
             'traitement_applique' => 'boolean',
             'hausse_ajoutee' => 'boolean',
             'hausse_retiree' => 'boolean',
+            'notes_audio_ajoutees' => 'array',
         ];
     }
 
     public function getANoteAudioAttribute(): bool
     {
         return $this->note_audio_path !== null;
+    }
+
+    /**
+     * Les notes vocales de la visite, sans leur chemin : la première, puis celles ajoutées dans la journée.
+     */
+    public function getNotesAudioAttribute(): array
+    {
+        $notes = $this->note_audio_path ? [['numero' => 0, 'duree' => $this->note_audio_duree]] : [];
+
+        foreach ($this->notes_audio_ajoutees ?? [] as $index => $note) {
+            $notes[] = ['numero' => $index + 1, 'duree' => $note['duree'] ?? null];
+        }
+
+        return $notes;
+    }
+
+    /**
+     * Chemins de toutes les notes, pour les servir ou les effacer.
+     */
+    public function cheminsAudio(): array
+    {
+        return array_values(array_filter([$this->note_audio_path, ...array_column($this->notes_audio_ajoutees ?? [], 'chemin')]));
     }
 
     public function user()
@@ -62,6 +86,26 @@ class Visite extends Model
     }
 
     /**
+     * Alertes d'après plusieurs visites, de la plus récente à la plus ancienne : pour chaque point,
+     * c'est la dernière visite qui l'a vraiment observé qui compte.
+     */
+    public static function alertesDe(iterable $visites): array
+    {
+        $combinee = new self;
+
+        foreach (array_keys(VisiteFields::OBSERVATIONS) as $champ) {
+            foreach ($visites as $visite) {
+                if (($visite->{$champ} ?? 'non_observe') !== 'non_observe') {
+                    $combinee->{$champ} = $visite->{$champ};
+                    break;
+                }
+            }
+        }
+
+        return $combinee->alertes();
+    }
+
+    /**
      * Ce que l'apiculteur doit garder à l'œil après cette visite.
      */
     public function alertes(): array
@@ -78,6 +122,11 @@ class Visite extends Model
             'fausse_teigne' => ['ok' => 'teigne'],
             'surface_couvain' => ['faible' => 'couvain faible'],
         ];
+
+        // Des œufs prouvent que la reine est là : ne pas la voir n'est alors pas inquiétant.
+        if ($this->ponte_observee === 'ok') {
+            unset($signes['reine_vue']);
+        }
 
         $alertes = [];
         foreach ($signes as $champ => $valeurs) {

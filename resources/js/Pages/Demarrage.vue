@@ -119,7 +119,7 @@ const etapes = computed(() => [
     <AppLayout title="Préparer le téléphone" sans-nav>
         <header class="px-5 pb-2 pt-7 lg:px-0 lg:pt-0">
             <h1 class="bn-title text-4xl leading-tight">Préparons votre téléphone</h1>
-            <p class="mt-2 text-lg text-muted">Faites-le chez vous, avec du réseau. Au rucher, tout marchera sans.</p>
+            <p class="mt-2 text-lg text-muted">Au toucher, rien à faire : vos ruches sont déjà sur ce téléphone, même sans réseau. Pour noter à la voix, faites ces étapes chez vous, avec du réseau.</p>
         </header>
 
         <ol class="mx-4 mt-3 flex max-w-xl flex-col gap-3 lg:mx-0">

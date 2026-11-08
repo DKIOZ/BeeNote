@@ -125,14 +125,26 @@ export async function changerDeCompte(ancien, nouveau) {
         await caches.delete('bn-pages');
     }
 
-    const retrouve = await getItem(`compte:${nouveau}`);
-    if (retrouve) {
-        await setItem('queue', retrouve.file);
-        if (retrouve.brouillon) {
-            await setItem('brouillon', retrouve.brouillon);
-        }
-        await removeItem(`compte:${nouveau}`);
+    await restituer(nouveau);
+}
+
+/**
+ * Rend à un compte les visites mises de côté pour lui, quel que soit le chemin qui l'y ramène.
+ */
+export async function restituer(compte) {
+    const retrouve = await getItem(`compte:${compte}`);
+    if (!retrouve) {
+        return;
     }
+
+    await updateItem('queue', (file) => {
+        const deja = new Set((file ?? []).map((v) => v.client_uuid));
+        return [...(file ?? []), ...(retrouve.file ?? []).filter((v) => !deja.has(v.client_uuid))];
+    });
+    if (retrouve.brouillon && !(await getItem('brouillon'))) {
+        await setItem('brouillon', retrouve.brouillon);
+    }
+    await removeItem(`compte:${compte}`);
 }
 
 export async function pendingCount() {

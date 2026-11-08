@@ -36,7 +36,7 @@ const statut = computed(() => {
     if (v.echo) return { titre: v.ecoute ? 'J\'écoute' : 'Noté', texte: `« ${v.echo} »`, alerte: false };
     if (v.ecoute) return { titre: 'J\'écoute', texte: 'Dites ce qui est écrit sur les boutons.', alerte: false };
 
-    return { titre: 'Écoute coupée', texte: 'Activez le micro, ou choisissez sur les boutons.', alerte: false };
+    return { titre: 'Micro éteint', texte: 'Touchez le micro pour parler, ou choisissez sur les boutons.', alerte: false };
 });
 
 const estNote = (groupe, option) => valeurs.value[groupe.id] === option.value;
@@ -89,7 +89,10 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
             <p class="mt-3 font-semibold text-sage">{{ nbNotes ? `${nbNotes} ${nbNotes > 1 ? 'points notés' : 'point noté'}` : 'Rien de noté pour l\'instant' }}</p>
         </section>
 
-        <p v-if="state.visite.complement" class="mx-4 mt-3 rounded-2xl bg-cream p-3 font-semibold text-cream-ink lg:mx-0">Déjà visitée aujourd'hui : ce que vous notez s'ajoute à la visite de ce matin.</p>
+        <div v-if="state.visite.complement" class="mx-4 mt-3 rounded-2xl bg-cream p-3 text-cream-ink lg:mx-0">
+            <p class="font-semibold">Déjà visitée aujourd'hui : ce que vous notez s'ajoute à cette visite.</p>
+            <p v-if="state.visite.deja?.resume" class="mt-1">Déjà noté : {{ state.visite.deja.resume }}. Un nouveau choix remplace l'ancien.</p>
+        </div>
 
         <section v-if="voix.echecs >= 2 && voix.ecoute" class="mx-4 mt-3 rounded-card bg-peach p-3.5 lg:mx-0">
             <p class="mb-2.5 font-bold text-rust">La voix passe mal ici</p>
@@ -106,7 +109,7 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
                 <h2 class="bn-title mb-2.5 text-[22px]">{{ famille.titre }}</h2>
                 <div class="flex flex-col gap-3.5">
                     <fieldset v-for="groupe in famille.groupes" :key="groupe.id" :aria-labelledby="`g-${groupe.id}`" class="m-0 border-0 p-0">
-                        <div class="mb-1 flex min-h-[28px] items-center justify-between">
+                        <div class="mb-1 flex min-h-[28px] items-start justify-between">
                             <span :id="`g-${groupe.id}`" class="font-semibold text-ink">{{ groupe.label }}<span v-if="groupe.aide" class="block text-sm font-normal text-muted">{{ groupe.aide }}</span></span>
                             <button v-if="valeurs[groupe.id]" type="button" class="-my-2 min-h-[44px] min-w-[76px] font-semibold text-muted underline" @click="effacerGroupe([groupe.id])">Effacer</button>
                             <span v-else class="text-muted">Pas noté</span>
@@ -129,8 +132,8 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
             <section>
                 <h2 class="bn-title mb-2.5 text-[22px]">Actions</h2>
                 <fieldset aria-labelledby="g-actions" class="m-0 border-0 p-0">
-                    <div class="mb-1 flex min-h-[28px] items-center justify-between">
-                        <span id="g-actions" class="text-sm font-semibold text-muted">J'ai fait</span>
+                    <div class="mb-1 flex min-h-[28px] items-start justify-between">
+                        <span id="g-actions" class="font-semibold text-ink">J'ai fait<span class="block text-sm font-normal text-muted">hausse : étage ajouté pour stocker le miel</span></span>
                         <button v-if="actionsNotees" type="button" class="-my-2 min-h-[44px] min-w-[76px] font-semibold text-muted underline" @click="effacerGroupe(ACTIONS.map((a) => a.id))">Effacer</button>
                         <span v-else class="text-muted">Pas noté</span>
                     </div>
@@ -177,7 +180,7 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
         <ConfirmSheet
             v-if="quitter"
             titre="Quitter cette visite ?"
-            texte="Elle reste en cours. Vous pourrez la reprendre depuis le micro."
+            texte="Elle reste en cours. Vous pourrez la reprendre depuis « Au rucher »."
             garder="Continuer la visite"
             confirmer="Quitter"
             :danger="false"

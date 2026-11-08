@@ -30,6 +30,9 @@ const CAUSES = {
     <section v-else-if="state.voix.erreur" role="alert" class="rounded-card bg-peach p-3.5">
         <p class="font-bold text-rust">{{ CAUSES[state.voix.erreur].titre }}</p>
         <p class="mb-2.5 mt-1">{{ CAUSES[state.voix.erreur].texte }}</p>
-        <button v-if="state.voix.erreur !== 'indisponible'" type="button" class="bn-btn-2 w-full lg:w-full" :disabled="state.voix.chargement" @click="ecouter(page.props.voiceModelUrl)">Réessayer</button>
+        <div class="grid grid-cols-2 gap-2">
+            <button type="button" class="bn-btn-2 lg:w-full" @click="state.voix.erreur = null">Continuer au toucher</button>
+            <button v-if="state.voix.erreur !== 'indisponible'" type="button" class="bn-btn-2 lg:w-full" :disabled="state.voix.chargement" @click="ecouter(page.props.voiceModelUrl)">Réessayer</button>
+        </div>
     </section>
 </template>

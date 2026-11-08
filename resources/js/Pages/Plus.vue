@@ -69,7 +69,7 @@ const demanderDeconnexion = async () => {
 
         <div class="flex flex-col gap-3.5 px-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:px-0">
             <section class="bn-card px-4 py-1">
-                <h2 class="mb-0.5 mt-3 text-sm font-bold text-muted">Au rucher</h2>
+                <h2 class="mb-0.5 mt-3 text-sm font-bold text-muted">Au rucher, sur cet appareil</h2>
                 <button v-for="reglage in reglages" :key="reglage.cle" type="button" role="switch" :aria-checked="reglage.on" class="flex min-h-[56px] w-full items-center justify-between gap-3 border-b border-hairline text-left font-semibold" :class="reglage.telephone && 'lg:hidden'" @click="basculer(reglage)">
                     {{ reglage.label }}
                     <span aria-hidden="true" class="flex h-[34px] w-[60px] flex-none rounded-full p-[3px] transition-colors" :class="reglage.on ? 'bg-forest' : 'bg-line'">

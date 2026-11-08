@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import Icon from '@/Components/Icon.vue';
 
@@ -41,6 +41,17 @@ onBeforeUnmount(() => {
 });
 
 const flash = computed(() => page.props.flash ?? {});
+
+// Un message se lit puis s'en va : une confirmation au bout de 5 secondes, une erreur à la fermeture.
+const bulle = ref(null);
+let minuteur = null;
+watch(flash, (valeur) => {
+    clearTimeout(minuteur);
+    bulle.value = valeur.erreur ? { texte: valeur.erreur, erreur: true } : valeur.message ? { texte: valeur.message, erreur: false } : null;
+    if (bulle.value && !bulle.value.erreur) {
+        minuteur = setTimeout(() => { bulle.value = null; }, 5000);
+    }
+}, { immediate: true });
 </script>
 
 <template>
@@ -74,9 +85,12 @@ const flash = computed(() => page.props.flash ?? {});
 
             <main class="mx-auto max-w-[1080px] lg:px-8 lg:py-8" :class="sansNav ? 'pb-6' : 'pb-28 lg:pb-8'">
                 <slot name="header" />
-                <div v-if="flash.message || flash.erreur" class="pointer-events-none fixed left-4 right-4 top-3 z-50 flex justify-center lg:left-64">
-                    <p v-if="flash.message" role="status" class="pointer-events-auto max-w-md rounded-2xl bg-forest px-4 py-3 font-semibold text-white shadow-nav">{{ flash.message }}</p>
-                    <p v-else role="alert" class="pointer-events-auto max-w-md rounded-2xl bg-peach px-4 py-3 font-semibold text-rust shadow-nav">{{ flash.erreur }}</p>
+                <!-- En bas, au-dessus de la barre : la bulle ne cache jamais le retour ni « Modifier ». -->
+                <div v-if="bulle" class="pointer-events-none fixed bottom-28 left-4 right-4 z-50 flex justify-center lg:bottom-6 lg:left-64">
+                    <p :role="bulle.erreur ? 'alert' : 'status'" class="pointer-events-auto flex max-w-md items-center gap-2 rounded-2xl border-2 py-2 pl-4 pr-1 font-semibold shadow-nav" :class="bulle.erreur ? 'border-rust bg-peach text-rust' : 'border-forest bg-white text-forest'">
+                        <span class="min-w-0 flex-1">{{ bulle.texte }}</span>
+                        <button type="button" aria-label="Fermer le message" class="flex h-11 w-11 flex-none items-center justify-center text-xl" @click="bulle = null">×</button>
+                    </p>
                 </div>
                 <slot />
             </main>

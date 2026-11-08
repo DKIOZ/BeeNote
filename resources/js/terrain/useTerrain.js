@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { computed, reactive } from 'vue';
-import { ACTIONS, ajouterJours, ajouterSemaines, compterNotes, jourLocal } from './fields.js';
+import { ACTIONS, ajouterJours, ajouterSemaines, compterNotes, jourLocal, resumeVisite } from './fields.js';
 
 // Même valeur que RucherOverview::RAPPEL_JOURS côté serveur.
 const RAPPEL_JOURS = 21;
@@ -8,7 +8,7 @@ import { refreshDonnees } from './prepare.js';
 import { getItem, removeItem, setItem, updateItem } from './store.js';
 
 // Champs de la file qui ne sont pas des observations : le reste redevient la visite si on la rouvre.
-const META = ['client_uuid', 'ruche_id', 'date_visite', 'heure_debut', 'taches_faites', 'note', 'nom', 'creee_le', 'refusee', 'recue', 'noteRefusee', 'complement'];
+const META = ['client_uuid', 'ruche_id', 'date_visite', 'heure_debut', 'taches_faites', 'note', 'nom', 'creee_le', 'refusee', 'recue', 'noteRefusee', 'complement', 'deja'];
 import { createVoskEngine, micSupported } from './voice/engine.js';
 import { matchPhrase } from './voice/phrases.js';
 
@@ -140,6 +140,11 @@ function aDuContenu(visite) {
     return !!visite && (Object.keys(visite.valeurs).some((cle) => !cle.startsWith('_') && visite.valeurs[cle]) || !!visite.note || visite.taches_faites.length > 0);
 }
 
+// Ce qui reste à visiter dans un rucher, d'après le téléphone : la file d'envoi compte.
+function aVisiterDans(item) {
+    return (item?.ruches ?? []).filter((h) => ['todo', 'late'].includes(etatRuche(h))).length;
+}
+
 const ruchesDuRucher = computed(() => (rucher.value?.ruches ?? []).map((item) => ({ ...item, etat: etatRuche(item) })));
 // Au rucher, on suit la rangée : la prochaine ruche est le numéro suivant qui reste à faire.
 // À visiter : à faire ou en retard, dans l'ordre des numéros. Une ruche « à venir » n'est pas due.
@@ -238,14 +243,15 @@ function nomDeRuche(id) {
     return state.donnees?.ruchers.flatMap((r) => r.ruches).find((h) => h.id === id)?.nom ?? 'Ruche';
 }
 
-function nouveauBrouillon(id, date = null, complement = false) {
+function nouveauBrouillon(id, date = null, complement = null) {
     state.visite = {
         client_uuid: uuid(),
         ruche_id: id,
         // Le nom reste lisible même si la ruche disparaît des données entre-temps.
         nom: nomDeRuche(id),
         // Cette ruche a déjà sa visite du jour : ce qui est noté s'y ajoute.
-        complement,
+        complement: complement !== null,
+        deja: complement,
         date_visite: date ?? aujourdhui(),
         // Une visite notée après coup n'a pas d'heure : la météo prend alors le milieu de journée.
         heure_debut: date === null ? new Date().toTimeString().slice(0, 5) : null,
@@ -290,10 +296,11 @@ async function commencer(id, date = null, depuisVoix = false) {
 
     state.rucherId = rucherDeLaRuche(id);
 
-    // Revenir sur une ruche déjà faite aujourd'hui rouvre sa visite au lieu d'en créer une seconde.
-    if (date === null && !(await rouvrirVisiteDuJour(id))) {
-        nouveauBrouillon(id, null, ruchesDuRucher.value.find((h) => h.id === id)?.etat === 'done');
-    } else if (date !== null) {
+    // Revenir sur une ruche déjà faite aujourd'hui ouvre un complément : la visite du matin reste
+    // intacte dans la file ou sur le serveur, et le serveur fusionne les deux en une seule visite.
+    if (date === null && ruchesDuRucher.value.find((h) => h.id === id)?.etat === 'done') {
+        nouveauBrouillon(id, null, dejaNote(id));
+    } else {
         nouveauBrouillon(id, date);
     }
 
@@ -302,34 +309,20 @@ async function commencer(id, date = null, depuisVoix = false) {
     return true;
 }
 
-async function rouvrirVisiteDuJour(id) {
-    const element = state.queue.find((v) => v.ruche_id === id && v.date_visite === aujourdhui() && !v.recue && !v.refusee);
+/**
+ * Ce qui a déjà été noté aujourd'hui sur cette ruche, pour l'afficher pendant le complément.
+ */
+function dejaNote(id) {
+    const jour = aujourdhui();
+    const enFile = state.queue.filter((v) => v.ruche_id === id && v.date_visite === jour && !v.refusee);
+    const lignes = enFile.flatMap((v) => resumeVisite(Object.fromEntries(Object.entries(v).filter(([cle]) => !META.includes(cle)))).map((l) => l.value));
+    const serveur = state.donnees?.ruchers.flatMap((r) => r.ruches).find((h) => h.id === id)?.derniere_visite;
 
-    if (!element) {
-        return false;
+    if (lignes.length) {
+        return { resume: lignes.join(', '), prochaine: enFile.some((v) => v.prochaine_visite_prevue) };
     }
 
-    const valeurs = Object.fromEntries(Object.entries(element).filter(([cle]) => !META.includes(cle)));
-    state.visite = {
-        client_uuid: element.client_uuid,
-        ruche_id: id,
-        nom: element.nom,
-        complement: element.complement ?? false,
-        date_visite: element.date_visite,
-        heure_debut: element.heure_debut,
-        valeurs,
-        taches_faites: element.taches_faites ?? [],
-        note: element.note,
-        apres_coup: false,
-    };
-    historique = [];
-    Object.assign(state.voix, { echo: null, dernier: null, entendu: null, rate: false, echecs: 0 });
-
-    await updateItem('queue', (file) => (file ?? []).filter((v) => v.client_uuid !== element.client_uuid)).then((file) => { state.queue = file; });
-    state.visitesDuJour = state.visitesDuJour.filter((r) => r !== id);
-    await sauverBrouillon();
-
-    return true;
+    return serveur?.date === jour ? { resume: serveur.resume, prochaine: false } : { resume: '', prochaine: false };
 }
 
 async function confirmerChangement() {
@@ -702,6 +695,7 @@ async function enregistrerVisite() {
             note: visite.note,
             nom: ruche.value?.nom ?? visite.nom,
             complement: visite.complement ?? false,
+            deja: visite.deja ?? null,
             creee_le: new Date().toISOString(),
         });
 
@@ -1034,6 +1028,7 @@ export function useTerrain() {
         prochaineRuche,
         rucheApres,
         aVisiter,
+        aVisiterDans,
         enAttente,
         refusees,
         ACTIONS,

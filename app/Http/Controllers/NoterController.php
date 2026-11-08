@@ -60,7 +60,9 @@ class NoterController extends Controller
         abort_unless($ruches->count() === count(array_unique($data['ruche_ids'])), 404);
         $ruches->each(fn ($ruche) => $this->authorizeRuche($ruche, 'update'));
 
+        $dejaSurPlace = 0;
         if ($type === 'deplacement') {
+            $dejaSurPlace = $ruches->where('rucher_id', (int) $data['vers_rucher_id'])->count();
             $ruches = $ruches->reject(fn ($ruche) => $ruche->rucher_id === (int) $data['vers_rucher_id']);
 
             if ($ruches->isEmpty()) {
@@ -76,19 +78,25 @@ class NoterController extends Controller
             }
         }
 
-        DB::transaction(function () use ($ruches, $type, $data, $request) {
+        $rattachees = 0;
+        DB::transaction(function () use ($ruches, $type, $data, $request, &$rattachees) {
             foreach ($ruches as $ruche) {
                 $this->enregistrer($type, $ruche, $data, $request);
 
                 if ($type === 'deplacement') {
-                    $ruche->recalculerRegistre();
+                    $rattachees += $ruche->recalculerRegistre();
                 }
             }
         });
 
         $cible = $ruches->count() === 1 ? route('ruches.show', $ruches->first()) : route('registre.index');
 
-        return redirect($cible)->with('message', 'Enregistré dans le registre.');
+        $message = 'Enregistré dans le registre.'
+            .($dejaSurPlace ? " {$dejaSurPlace} ".($dejaSurPlace > 1 ? 'ruches étaient déjà' : 'ruche était déjà').' sur place.' : '')
+            // Un déplacement daté dans le passé change le rucher des saisies faites depuis : on le dit.
+            .($rattachees ? " {$rattachees} ".($rattachees > 1 ? 'saisies faites depuis cette date ont changé' : 'saisie faite depuis cette date a changé').' de rucher.' : '');
+
+        return redirect($cible)->with('message', $message);
     }
 
     public function show(Request $request, string $type, int $id)

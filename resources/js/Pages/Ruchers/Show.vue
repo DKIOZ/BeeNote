@@ -29,10 +29,6 @@ function etatTexte(ruche) {
     if (ruche.taches[0]) {
         morceaux.push(ruche.taches[0].titre + (ruche.taches[0].retard ? ', en retard' : ''));
     }
-    if (ruche.alertes?.length) {
-        morceaux.push(`À surveiller : ${ruche.alertes.join(', ')}`);
-    }
-
     return morceaux.join(' · ');
 }
 
@@ -51,6 +47,11 @@ const aujourdhui = jourLocal();
             <Link v-if="rucher.ruches.length" :href="route('terrain', { rucher: rucher.id })" class="bn-btn-flat">Visiter le rucher</Link>
         </section>
 
+        <section v-if="rucher.taches?.length" class="bn-card mx-4 mt-4 p-4 lg:mx-0">
+            <h2 class="font-bold">Pour tout le rucher</h2>
+            <p v-for="tache in rucher.taches" :key="tache.id" class="mt-1" :class="tache.retard ? 'font-semibold text-rust' : 'text-muted'">{{ tache.titre }} · {{ tache.retard ? 'en retard' : dateCourte(tache.date_prevue) }}</p>
+        </section>
+
         <section class="px-4 pt-5 lg:px-0">
             <h2 class="bn-title mb-2 ml-1 text-[22px] lg:ml-0">Ruches</h2>
             <div v-if="!rucher.ruches.length" class="bn-card mb-3 p-4">
@@ -63,11 +64,15 @@ const aujourdhui = jourLocal();
                     <Hex :etat="ruche.etat" :mark="ruche.numero" :couleur="ruche.couleur" :size="50" />
                     <span class="min-w-0 flex-1">
                         <span class="block font-semibold">{{ ruche.nom }}</span>
-                        <span class="block text-sm" :class="ruche.etat === 'late' || ruche.alertes?.length ? 'font-semibold text-rust' : 'text-muted'">{{ etatTexte(ruche) }}</span>
+                        <span class="block text-sm" :class="ruche.etat === 'late' ? 'font-semibold text-rust' : 'text-muted'">{{ etatTexte(ruche) }}</span>
+                        <span v-if="ruche.alertes?.length" class="block text-sm font-semibold text-rust">À surveiller : {{ ruche.alertes.join(', ') }}</span>
                     </span>
                 </Link>
             </div>
-            <Link :href="route('ruches.create', rucher.id)" class="bn-btn-2 mt-3">Ajouter une ruche</Link>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <Link :href="route('ruches.create', rucher.id)" class="bn-btn-2">Ajouter une ruche</Link>
+                <Link v-if="rucher.ruches.length" :href="route('noter.create', { ruche: rucher.ruches[0].id })" class="bn-btn-2">Traiter ou déplacer plusieurs ruches</Link>
+            </div>
         </section>
     </AppLayout>
 </template>

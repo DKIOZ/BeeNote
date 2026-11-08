@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { changerDeCompte, getItem, setItem } from './store';
+import { changerDeCompte, getItem, restituer, setItem } from './store';
 
 let dernierRafraichissement = 0;
 
@@ -58,6 +58,8 @@ export async function prepareOffline(userId) {
         }
 
         await setItem('proprietaire', userId);
+        // Après une déconnexion, le propriétaire est oublié : ses visites mises de côté reviennent quand même.
+        await restituer(userId);
 
         if (navigator.onLine) {
             dernierRafraichissement = Date.now();

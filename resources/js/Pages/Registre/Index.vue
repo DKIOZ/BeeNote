@@ -23,7 +23,10 @@ const lien = (ligne) => (ligne.type === 'visite' ? route('visites.show', ligne.i
                 <h1 class="bn-title text-4xl">Registre</h1>
                 <p class="mt-1 text-muted">Le registre d'élevage, à présenter en cas de contrôle sanitaire. 12 derniers mois, tous les ruchers.</p>
             </div>
-            <Link v-if="props.lignes.length" :href="route('registre.export-form')" class="bn-btn lg:w-auto">Télécharger mon registre</Link>
+            <div class="flex flex-wrap gap-2">
+                <Link :href="route('noter.create')" class="bn-btn-2 lg:w-auto">Noter un traitement, une récolte…</Link>
+                <Link v-if="props.lignes.length" :href="route('registre.export-form')" class="bn-btn lg:w-auto">Télécharger mon registre</Link>
+            </div>
         </header>
 
         <div v-if="props.lignes.length" role="group" aria-label="Filtrer" class="flex flex-wrap gap-1.5 px-4 pb-1 lg:px-0">
@@ -32,8 +35,8 @@ const lien = (ligne) => (ligne.type === 'visite' ? route('visites.show', ligne.i
                 :key="valeur"
                 type="button"
                 :aria-pressed="filtre === valeur"
-                class="min-h-[46px] flex-none rounded-full px-3.5 font-semibold"
-                :class="filtre === valeur ? 'bg-forest text-white' : 'bg-white text-ink'"
+                class="min-h-[46px] flex-none rounded-full border-[1.5px] px-3.5 font-semibold"
+                :class="filtre === valeur ? 'border-forest bg-forest text-white' : 'border-line bg-white text-ink'"
                 @click="filtre = valeur"
             >{{ texte }}</button>
         </div>
@@ -74,7 +77,7 @@ const lien = (ligne) => (ligne.type === 'visite' ? route('visites.show', ligne.i
                 </thead>
                 <tbody>
                     <tr v-for="ligne in lignes" :key="`${ligne.type}-${ligne.id}`" class="cursor-pointer border-t border-hairline hover:bg-ground" @click="router.visit(lien(ligne))">
-                        <td class="whitespace-nowrap px-5 py-3 font-semibold"><Link :href="lien(ligne)" class="underline-offset-2 hover:underline">{{ dateCourte(ligne.date) }}</Link></td>
+                        <td class="whitespace-nowrap px-5 py-3 font-semibold"><Link :href="lien(ligne)" class="underline-offset-2 hover:underline" :aria-label="`${dateCourte(ligne.date)}, ${TITRES[ligne.type]}, ${ligne.ruche}`">{{ dateCourte(ligne.date) }}</Link></td>
                         <td class="px-3 py-3"><span class="bn-badge" :class="BADGES[ligne.type]">{{ TITRES[ligne.type] }}</span></td>
                         <td class="whitespace-nowrap px-3 py-3">{{ ligne.ruche }}</td>
                         <td class="whitespace-nowrap px-3 py-3">{{ ligne.rucher }}</td>

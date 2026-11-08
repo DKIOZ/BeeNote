@@ -38,7 +38,8 @@ onMounted(() => arreterEcoute());
             <template v-if="enAttente.length && !state.enligne">Tout est gardé sur le téléphone et sera envoyé au retour du réseau.</template>
             <template v-else-if="state.envoi === 'encours'">Envoi en cours…</template>
             <template v-else-if="enAttente.length">{{ enAttente.length }} {{ enAttente.length > 1 ? 'visites restent' : 'visite reste' }} à envoyer.</template>
-            <template v-else>Tout est envoyé.</template>
+            <template v-else-if="faites">Tout est envoyé.</template>
+            <template v-else>Rien n'a été noté sur ce rucher aujourd'hui.</template>
         </p>
 
         <section v-if="aRetenir.length" class="mx-4 mt-5 lg:mx-0">
