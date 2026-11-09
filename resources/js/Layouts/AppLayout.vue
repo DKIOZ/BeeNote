@@ -42,14 +42,14 @@ onBeforeUnmount(() => {
 
 const flash = computed(() => page.props.flash ?? {});
 
-// Un message se lit puis s'en va : une confirmation au bout de 5 secondes, une erreur à la fermeture.
+// Un message se lit puis s'en va : une confirmation au bout de 8 secondes, une erreur à la fermeture.
 const bulle = ref(null);
 let minuteur = null;
 watch(flash, (valeur) => {
     clearTimeout(minuteur);
     bulle.value = valeur.erreur ? { texte: valeur.erreur, erreur: true } : valeur.message ? { texte: valeur.message, erreur: false } : null;
     if (bulle.value && !bulle.value.erreur) {
-        minuteur = setTimeout(() => { bulle.value = null; }, 5000);
+        minuteur = setTimeout(() => { bulle.value = null; }, 8000);
     }
 }, { immediate: true });
 </script>

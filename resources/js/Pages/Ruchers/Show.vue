@@ -71,7 +71,7 @@ const aujourdhui = jourLocal();
             </div>
             <div class="mt-3 flex flex-wrap gap-2">
                 <Link :href="route('ruches.create', rucher.id)" class="bn-btn-2">Ajouter une ruche</Link>
-                <Link v-if="rucher.ruches.length" :href="route('noter.create', { ruche: rucher.ruches[0].id })" class="bn-btn-2">Traiter ou déplacer plusieurs ruches</Link>
+                <Link v-if="rucher.ruches.length" :href="route('noter.create', { rucher: rucher.id })" class="bn-btn-2">Traiter ou déplacer plusieurs ruches</Link>
             </div>
         </section>
     </AppLayout>

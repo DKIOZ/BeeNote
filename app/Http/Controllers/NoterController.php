@@ -37,6 +37,7 @@ class NoterController extends Controller
             'type' => in_array($request->query('type'), array_keys(self::MODELES)) ? $request->query('type') : 'traitement',
             'rucheId' => $request->integer('ruche') ?: null,
             'visiteId' => $request->integer('visite') ?: null,
+            'rucherId' => $request->integer('rucher') ?: null,
             'ruchers' => Rucher::where('team_id', $request->user()->current_team_id)
                 ->with(['ruches' => fn ($q) => $q->orderBy('numero')->orderBy('id')->select('id', 'nom', 'rucher_id', 'statut')])
                 ->orderBy('nom')

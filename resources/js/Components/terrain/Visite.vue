@@ -110,7 +110,7 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
                 <div class="flex flex-col gap-3.5">
                     <fieldset v-for="groupe in famille.groupes" :key="groupe.id" :aria-labelledby="`g-${groupe.id}`" class="m-0 border-0 p-0">
                         <div class="mb-1 flex min-h-[28px] items-start justify-between">
-                            <span :id="`g-${groupe.id}`" class="font-semibold text-ink">{{ groupe.label }}<span v-if="groupe.aide" class="block text-sm font-normal text-muted">{{ groupe.aide }}</span></span>
+                            <span :id="`g-${groupe.id}`" class="font-semibold text-ink">{{ groupe.label }}<span v-if="groupe.aide" class="block text-base font-normal text-muted">{{ groupe.aide }}</span></span>
                             <button v-if="valeurs[groupe.id]" type="button" class="-my-2 min-h-[44px] min-w-[76px] font-semibold text-muted underline" @click="effacerGroupe([groupe.id])">Effacer</button>
                             <span v-else class="text-muted">Pas noté</span>
                         </div>

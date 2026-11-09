@@ -26,6 +26,13 @@ const form = useForm({
     notes: props.ruche?.notes ?? '',
 });
 
+// Le nom proposé se remplace en tapant, au lieu de s'y ajouter (« Ruche 3Essaim »).
+const selectionnerSuggestion = (event) => {
+    if (form.nom === props.suggestion && event.target instanceof HTMLInputElement) {
+        requestAnimationFrame(() => event.target.select());
+    }
+};
+
 const confirmation = ref(false);
 
 function enregistrer() {
@@ -49,7 +56,7 @@ function enregistrer() {
         <BackBar :href="ruche ? route('ruches.show', ruche.id) : route('ruchers.show', rucher.id)" :titre="ruche ? 'Modifier la ruche' : 'Ajouter une ruche'" :sous="rucher.nom" />
 
         <form class="grid gap-4 px-4 pb-6 pt-2 lg:grid-cols-2 lg:rounded-card lg:bg-white lg:p-6 lg:shadow-card" @submit.prevent="enregistrer">
-            <Field id="nom" v-model="form.nom" label="Nom" :erreur="form.errors.nom" required />
+            <Field id="nom" v-model="form.nom" label="Nom" :erreur="form.errors.nom" required @focusin="selectionnerSuggestion" />
 
             <fieldset class="m-0 border-0 p-0">
                 <legend class="bn-label p-0">Couleur de la ruche</legend>

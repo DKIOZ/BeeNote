@@ -21,7 +21,7 @@ const valeurs = computed(() => state.visite?.valeurs ?? {});
         <div class="flex flex-col gap-4 px-4 pt-3 lg:px-0">
             <fieldset v-for="groupe in DETAILS" :key="groupe.id" :aria-labelledby="`d-${groupe.id}`" class="m-0 border-0 p-0">
                 <div class="mb-1 flex min-h-[28px] items-center justify-between">
-                    <span :id="`d-${groupe.id}`" class="font-semibold text-ink">{{ groupe.label }}<span v-if="groupe.aide" class="block text-sm font-normal text-muted">{{ groupe.aide }}</span></span>
+                    <span :id="`d-${groupe.id}`" class="font-semibold text-ink">{{ groupe.label }}<span v-if="groupe.aide" class="block text-base font-normal text-muted">{{ groupe.aide }}</span></span>
                     <button v-if="valeurs[groupe.id]" type="button" class="-my-2 min-h-[44px] min-w-[76px] text-sm font-semibold text-muted underline" @click="effacerGroupe([groupe.id])">Effacer</button>
                     <span v-else class="text-sm text-muted">Pas noté</span>
                 </div>

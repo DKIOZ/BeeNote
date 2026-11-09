@@ -44,7 +44,14 @@ const voixPrete = ref(false);
 const faite = ref(null);
 let effacer = null;
 
+const frise = ref(null);
+
 onMounted(async () => {
+    // Le mois en cours au début de la bande, avec le précédent visible.
+    const courant = frise.value?.querySelector(`[data-mois="${moisCourant.value}"]`);
+    if (courant && frise.value.scrollWidth > frise.value.clientWidth) {
+        frise.value.scrollLeft = Math.max(0, courant.offsetLeft - frise.value.offsetLeft - courant.offsetWidth);
+    }
     attente.value = await pendingCount().catch(() => 0);
     // Une visite laissée à moitié se reprend dès l'accueil.
     const brouillon = await getItem('brouillon').catch(() => null);
@@ -177,9 +184,10 @@ const annuler = () => {
                 Prêt pour le rucher : voix disponible
             </Link>
 
-            <section aria-label="Frise de la saison" class="bn-card hidden p-5 lg:block">
-                <ol class="grid grid-cols-12 gap-1.5">
-                    <li v-for="(mois, index) in MOIS" :key="mois" class="min-h-[112px] rounded-xl p-2 text-sm" :class="index + 1 === moisCourant ? 'bg-forest text-white' : 'bg-ground'">
+            <!-- Sur mobile, la frise défile de côté et s'ouvre sur le mois en cours. -->
+            <section aria-label="Frise de la saison" class="bn-card mx-4 mt-4 p-3 lg:mx-0 lg:mt-0 lg:p-5">
+                <ol ref="frise" class="flex gap-1.5 overflow-x-auto lg:grid lg:grid-cols-12 lg:overflow-visible">
+                    <li v-for="(mois, index) in MOIS" :key="mois" :data-mois="index + 1" :aria-current="index + 1 === moisCourant ? 'date' : undefined" class="min-h-[88px] w-[68px] flex-none rounded-xl p-2 text-sm lg:min-h-[112px] lg:w-auto" :class="index + 1 === moisCourant ? 'bg-forest text-white' : 'bg-ground'">
                         <span class="block font-semibold">{{ mois }}</span>
                         <span v-if="saison?.[index + 1]" class="mt-1 block">{{ saison[index + 1] }} {{ saison[index + 1] > 1 ? 'visites' : 'visite' }}</span>
                     </li>

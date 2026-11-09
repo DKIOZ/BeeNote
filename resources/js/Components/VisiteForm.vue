@@ -37,8 +37,8 @@ const optionsNourriture = (groupe) => [{ value: '', text: 'Pas noté' }, ...grou
         <fieldset class="m-0 border-0 p-0 lg:col-span-3">
             <legend class="bn-label p-0">J'ai fait</legend>
             <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
-                <label v-for="action in ACTIONS" :key="action.id" class="flex min-h-[56px] cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] border-line bg-white px-3 font-semibold lg:min-h-[44px]">
-                    <input v-model="form[action.id]" type="checkbox" class="h-6 w-6 rounded border-line text-forest focus:ring-honey">
+                <label v-for="action in ACTIONS" :key="action.id" :for="`fait-${action.id}`" class="flex min-h-[56px] cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] border-line bg-white px-3 font-semibold lg:min-h-[44px]">
+                    <input :id="`fait-${action.id}`" v-model="form[action.id]" type="checkbox" :aria-label="action.text" class="h-6 w-6 rounded border-line text-forest focus:ring-honey">
                     {{ action.text }}
                 </label>
             </div>

@@ -11,6 +11,7 @@ const props = defineProps({
     type: String,
     rucheId: Number,
     visiteId: Number,
+    rucherId: Number,
     ruchers: Array,
     aujourdhui: String,
 });
@@ -19,7 +20,10 @@ const TYPES = [['traitement', 'Traitement'], ['recolte', 'Récolte'], ['deplacem
 const type = ref(props.type);
 
 const toutes = computed(() => props.ruchers.flatMap((r) => r.ruches));
-const rucherDeLaRuche = computed(() => props.ruchers.find((r) => r.ruches.some((h) => h.id === props.rucheId)) ?? props.ruchers[0]);
+// Venu d'un rucher : ce rucher, sans ruche cochée. Venu d'une ruche : son rucher, elle cochée.
+const rucherDeLaRuche = computed(() => props.ruchers.find((r) => r.id === props.rucherId)
+    ?? props.ruchers.find((r) => r.ruches.some((h) => h.id === props.rucheId))
+    ?? props.ruchers[0]);
 const rucherChoisi = ref(rucherDeLaRuche.value?.id ?? null);
 const ruches = computed(() => props.ruchers.find((r) => r.id === rucherChoisi.value)?.ruches ?? []);
 
@@ -67,7 +71,12 @@ watch(rucherChoisi, (id) => {
 
 const nombre = computed(() => form.ruche_ids.length);
 const verbe = computed(() => ({ traitement: 'Noter le traitement', recolte: 'Noter la récolte', deplacement: 'Déplacer' }[type.value]));
-const retour = computed(() => (props.rucheId ? route('ruches.show', props.rucheId) : route('dashboard')));
+const retour = computed(() => {
+    if (props.rucheId) return route('ruches.show', props.rucheId);
+    if (props.ruchers.some((r) => r.id === props.rucherId)) return route('ruchers.show', props.rucherId);
+
+    return route('dashboard');
+});
 
 const CHAMPS = {
     traitement: ['date_traitement', 'type_traitement', 'produit_utilise', 'dosage', 'numero_lot', 'notes'],
@@ -147,8 +156,9 @@ function enregistrer() {
                     <p class="text-muted">L'ancien emplacement reste dans l'historique.</p>
                 </template>
 
-                <button type="submit" class="bn-btn mt-1" :disabled="form.processing || !nombre || !toutes.length || (type === 'deplacement' && ruchers.length < 2)">
-                    {{ verbe }}<template v-if="nombre > 1"> pour {{ nombre }} ruches</template>
+                <button type="submit" class="bn-btn mt-1" :aria-busy="form.processing" :disabled="form.processing || !nombre || !toutes.length || (type === 'deplacement' && ruchers.length < 2)">
+                    <template v-if="form.processing">Enregistrement en cours…</template>
+                    <template v-else>{{ verbe }}<template v-if="nombre > 1"> pour {{ nombre }} ruches</template></template>
                 </button>
             </form>
         </div>
