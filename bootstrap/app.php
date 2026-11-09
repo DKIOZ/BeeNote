@@ -11,6 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Un tunnel local (cloudflared) relaie en HTTPS : on ne fait confiance qu'au proxy sur la machine.
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+
         $middleware->web(append: [
             \App\Http\Middleware\LimiteComptes::class,
             \App\Http\Middleware\SecurityHeaders::class,
