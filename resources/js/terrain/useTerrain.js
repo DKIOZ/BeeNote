@@ -147,7 +147,7 @@ function aVisiterDans(item) {
 
 const ruchesDuRucher = computed(() => (rucher.value?.ruches ?? []).map((item) => ({ ...item, etat: etatRuche(item) })));
 // Au rucher, on suit la rangée : la prochaine ruche est le numéro suivant qui reste à faire.
-// À visiter : à faire ou en retard, dans l'ordre des numéros. Une ruche « à venir » n'est pas due.
+// À visiter : à faire ou en retard, dans l'ordre des numéros. Une ruche « à venir » n'est pas due.
 const aVisiter = computed(() => ruchesDuRucher.value.filter((h) => h.etat === 'todo' || h.etat === 'late'));
 const prochaineRuche = computed(() => aVisiter.value[0] ?? null);
 // La ruche qui vient après celle en cours, dans l'ordre des numéros, en repartant du début.
@@ -385,7 +385,7 @@ function noter(action, depuisVoix = false) {
     sauverBrouillon();
     confirmer(`${ruche.value?.nom ?? ''}, ${String(action.texte).toLowerCase()}`, depuisVoix);
 
-    // Le jaune dit « je viens de noter » : il cède la place au vert de ce qui est noté.
+    // Le jaune dit « je viens de noter » : il cède la place au vert de ce qui est noté.
     const noteA = state.voix.dernier;
     setTimeout(() => {
         if (state.voix.dernier === noteA) {
@@ -448,7 +448,7 @@ function surPhrase(texte) {
 
     const action = matchPhrase(texte);
 
-    // Pendant une note, on parle librement : seule « fin de note » garde un sens.
+    // Pendant une note, on parle librement : seule « fin de note » garde un sens.
     if (state.vue === 'note') {
         if (action?.type === 'fin_note') {
             executer(action);

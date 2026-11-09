@@ -19,7 +19,7 @@ const AVANTAGES = [
                     <Link :href="route('login')" class="flex min-h-[46px] items-center rounded-2xl bg-white/15 px-4 font-semibold hover:bg-white/25">Se connecter</Link>
                 </header>
                 <h1 class="bn-title mt-14 max-w-[640px] text-[clamp(40px,6vw,68px)] leading-[1.02]">Le carnet de ruches qui vous écoute, même avec les gants</h1>
-                <p class="mt-5 max-w-[560px] text-lg text-[#E4ECE8]">Dites « reine vue », « hausse posée » : c'est noté. Un toucher pour lancer l'écoute, puis la voix fait le reste, même sans réseau. Le toucher reste là si besoin.</p>
+                <p class="mt-5 max-w-[560px] text-lg text-sage-light">Dites « reine vue », « hausse posée » : c'est noté. Un toucher pour lancer l'écoute, puis la voix fait le reste, même sans réseau. Le toucher reste là si besoin.</p>
                 <div class="mt-7"><Link :href="route('register')" class="bn-btn-flat lg:w-auto lg:px-7">Créer mon compte</Link></div>
             </div>
         </section>

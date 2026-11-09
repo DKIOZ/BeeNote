@@ -27,7 +27,8 @@ function etatTexte(ruche) {
     }
 
     if (ruche.taches[0]) {
-        morceaux.push(ruche.taches[0].titre + (ruche.taches[0].retard ? ', en retard' : ''));
+        // La ruche est déjà dite « en retard » : ne pas le répéter pour la tâche.
+        morceaux.push(ruche.taches[0].titre + (ruche.taches[0].retard && ruche.etat !== 'late' ? ', en retard' : ''));
     }
     return morceaux.join(' · ');
 }

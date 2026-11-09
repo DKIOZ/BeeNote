@@ -101,7 +101,7 @@ onBeforeUnmount(() => {
         <div class="mx-auto flex min-h-full max-w-xl flex-col px-5 pb-4 pt-6">
             <p class="text-sage">{{ ruche?.nom }}</p>
             <h1 class="bn-title mt-1 text-4xl leading-tight">Parlez librement</h1>
-            <p class="mt-2 text-lg text-[#E4ECE8]">Votre voix est gardée telle quelle pour la réécouter. Rien n'est analysé.</p>
+            <p class="mt-2 text-lg text-sage-light">Votre voix est gardée telle quelle pour la réécouter. Rien n'est analysé.</p>
 
             <div class="mt-16 text-center">
                 <p v-if="erreur" role="alert" class="rounded-2xl bg-peach p-3 font-semibold text-rust">{{ erreur }}</p>
@@ -110,7 +110,7 @@ onBeforeUnmount(() => {
                     <div aria-hidden="true" class="mt-3 flex h-[60px] items-center justify-center gap-[5px]">
                         <span v-for="(hauteur, index) in BARRES" :key="index" class="w-1.5 animate-bn-wave rounded-sm bg-honey" :style="{ height: `${hauteur}px`, animationDelay: `${index * 0.07}s` }" />
                     </div>
-                    <p class="mt-6 text-[#E4ECE8]">Dites « fin de note » pour revenir à la visite.</p>
+                    <p class="mt-6 text-sage-light">Dites « fin de note » pour revenir à la visite.</p>
                 </template>
             </div>
 

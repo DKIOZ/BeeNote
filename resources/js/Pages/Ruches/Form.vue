@@ -26,7 +26,7 @@ const form = useForm({
     notes: props.ruche?.notes ?? '',
 });
 
-// Le nom proposé se remplace en tapant, au lieu de s'y ajouter (« Ruche 3Essaim »).
+// Le nom proposé se remplace en tapant, au lieu de s'y ajouter (« Ruche 3Essaim »).
 const selectionnerSuggestion = (event) => {
     if (form.nom === props.suggestion && event.target instanceof HTMLInputElement) {
         requestAnimationFrame(() => event.target.select());
@@ -92,13 +92,13 @@ function enregistrer() {
         <ConfirmSheet
             v-if="confirmation"
             titre="Mettre cette ruche à la corbeille ?"
-            texte="Ses visites et récoltes seront effacées au bout de 30 jours. Ses traitements et déplacements restent au registre. Une colonie morte se garde plutôt en « Morte »."
+            texte="Ses visites et récoltes seront effacées au bout de 30 jours. Ses traitements et déplacements restent au registre. Une colonie morte se garde plutôt en « Morte »."
             garder="Garder la ruche"
             confirmer="Mettre à la corbeille"
             @garder="confirmation = false"
             @confirmer="router.delete(route('ruches.destroy', ruche.id))"
         >
-            <button v-if="ruche.statut !== 'morte'" type="button" class="mt-1 inline-flex min-h-[48px] w-full items-center justify-center font-semibold text-forest underline" @click="confirmation = false; form.statut = 'morte'; enregistrer()">Passer en « Morte » plutôt</button>
+            <button v-if="ruche.statut !== 'morte'" type="button" class="mt-1 inline-flex min-h-[48px] w-full items-center justify-center font-semibold text-forest underline" @click="confirmation = false; form.statut = 'morte'; enregistrer()">Passer en « Morte » plutôt</button>
         </ConfirmSheet>
     </AppLayout>
 </template>

@@ -7,7 +7,7 @@ const props = defineProps({
     size: { type: Number, default: 56 },
     parLigne: { type: Number, default: 4 },
     surVert: { type: Boolean, default: false },
-    // Au-delà, les alvéoles sont résumées par « +N » : aucune ruche ne disparaît en silence.
+    // Au-delà, les alvéoles sont résumées par « +N » : aucune ruche ne disparaît en silence.
     max: { type: Number, default: null },
 });
 

@@ -8,8 +8,8 @@ const props = defineProps({ lignes: Array, aUnRucher: Boolean, limite: { type: N
 
 const FILTRES = [['tout', 'Tout'], ['traitement', 'Traitements'], ['visite', 'Visites'], ['recolte', 'Récoltes'], ['deplacement', 'Déplacements']];
 const TITRES = { visite: 'Visite', traitement: 'Traitement', recolte: 'Récolte', deplacement: 'Déplacement' };
-const POINTS = { visite: 'bg-[#2F6DB5]', traitement: 'bg-late', recolte: 'bg-[#E09A00]', deplacement: 'bg-line' };
-const BADGES = { visite: 'bg-[#DCEAF8] text-[#1C5A99]', traitement: 'bg-peach text-rust', recolte: 'bg-cream text-cream-ink', deplacement: 'bg-soft text-muted' };
+const POINTS = { visite: 'bg-blue', traitement: 'bg-late', recolte: 'bg-honey-deep', deplacement: 'bg-line' };
+const BADGES = { visite: 'bg-blue-soft text-blue-ink', traitement: 'bg-peach text-rust', recolte: 'bg-cream text-cream-ink', deplacement: 'bg-soft text-muted' };
 
 const filtre = ref('tout');
 const lignes = computed(() => (filtre.value === 'tout' ? props.lignes : props.lignes.filter((l) => l.type === filtre.value)));

@@ -55,7 +55,7 @@ watch(flash, (valeur) => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-ground lg:flex">
+    <div class="bn-safe-pt min-h-screen bg-ground lg:flex">
         <Head :title="title ?? undefined" />
 
         <aside class="hidden w-60 flex-none bg-forest px-4 py-6 text-white lg:block">
@@ -70,10 +70,10 @@ watch(flash, (valeur) => {
                     :href="item.href()"
                     :aria-current="actifPc(item) ? 'page' : undefined"
                     class="flex min-h-[44px] items-center rounded-xl px-3.5 font-semibold hover:bg-white/10"
-                    :class="actifPc(item) ? 'bg-white/15 text-white shadow-[inset_4px_0_0_#FFB81C]' : 'text-[#E4ECE8]'"
+                    :class="actifPc(item) ? 'bg-white/15 text-white shadow-[inset_4px_0_0_#FFB81C]' : 'text-sage-light'"
                 >{{ item.label }}</Link>
-                <Link :href="route('etiquettes.index')" :aria-current="actif('/etiquettes') ? 'page' : undefined" class="flex min-h-[44px] items-center rounded-xl px-3.5 font-semibold hover:bg-white/10" :class="actif('/etiquettes') ? 'bg-white/15 text-white shadow-[inset_4px_0_0_#FFB81C]' : 'text-[#E4ECE8]'">QR codes</Link>
-                <Link :href="reglages.href()" :aria-current="actifPc(reglages) ? 'page' : undefined" class="flex min-h-[44px] items-center rounded-xl px-3.5 font-semibold hover:bg-white/10" :class="actifPc(reglages) ? 'bg-white/15 text-white shadow-[inset_4px_0_0_#FFB81C]' : 'text-[#E4ECE8]'">{{ reglages.labelPc }}</Link>
+                <Link :href="route('etiquettes.index')" :aria-current="actif('/etiquettes') ? 'page' : undefined" class="flex min-h-[44px] items-center rounded-xl px-3.5 font-semibold hover:bg-white/10" :class="actif('/etiquettes') ? 'bg-white/15 text-white shadow-[inset_4px_0_0_#FFB81C]' : 'text-sage-light'">QR codes</Link>
+                <Link :href="reglages.href()" :aria-current="actifPc(reglages) ? 'page' : undefined" class="flex min-h-[44px] items-center rounded-xl px-3.5 font-semibold hover:bg-white/10" :class="actifPc(reglages) ? 'bg-white/15 text-white shadow-[inset_4px_0_0_#FFB81C]' : 'text-sage-light'">{{ reglages.labelPc }}</Link>
             </nav>
         </aside>
 
@@ -83,10 +83,10 @@ watch(flash, (valeur) => {
                 Pas de réseau : tout est gardé sur le téléphone
             </div>
 
-            <main class="mx-auto max-w-[1080px] lg:px-8 lg:py-8" :class="sansNav ? 'pb-6' : 'pb-28 lg:pb-8'">
+            <main class="mx-auto max-w-[1080px] lg:px-8 lg:py-8" :class="sansNav ? 'pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8' : 'pb-[calc(7rem+env(safe-area-inset-bottom,0px))] lg:pb-8'">
                 <slot name="header" />
-                <!-- En bas, au-dessus de la barre : la bulle ne cache jamais le retour ni « Modifier ». -->
-                <div v-if="bulle" class="pointer-events-none fixed bottom-28 left-4 right-4 z-50 flex justify-center lg:bottom-6 lg:left-64">
+                <!-- En bas, au-dessus de la barre : la bulle ne cache jamais le retour ni « Modifier ». -->
+                <div v-if="bulle" class="pointer-events-none fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] left-4 right-4 z-50 flex justify-center lg:bottom-6 lg:left-64">
                     <p :role="bulle.erreur ? 'alert' : 'status'" class="pointer-events-auto flex max-w-md items-center gap-2 rounded-2xl border-2 py-2 pl-4 pr-1 font-semibold shadow-nav" :class="bulle.erreur ? 'border-rust bg-peach text-rust' : 'border-forest bg-white text-forest'">
                         <span class="min-w-0 flex-1">{{ bulle.texte }}</span>
                         <button type="button" aria-label="Fermer le message" class="flex h-11 w-11 flex-none items-center justify-center text-xl" @click="bulle = null">×</button>
@@ -99,7 +99,7 @@ watch(flash, (valeur) => {
         <nav
             v-if="!sansNav"
             aria-label="Navigation principale"
-            class="fixed bottom-3 left-3 right-3 z-40 flex h-[72px] items-stretch rounded-3xl bg-white shadow-nav lg:hidden"
+            class="fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-3 right-3 z-40 flex h-[72px] items-stretch rounded-3xl bg-white shadow-nav lg:hidden"
         >
             <template v-for="(item, index) in items" :key="item.nom">
                 <Link

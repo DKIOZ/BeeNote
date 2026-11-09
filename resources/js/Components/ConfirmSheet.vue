@@ -53,7 +53,7 @@ onBeforeUnmount(() => {
 
 <template>
     <div role="dialog" aria-modal="true" :aria-label="titre" class="fixed inset-0 z-50 flex items-end justify-center bg-forest/55 lg:items-center" @click.self="$emit('garder')">
-        <div ref="feuille" class="w-full max-w-md rounded-t-hero bg-white px-4 pb-5 pt-6 lg:rounded-hero">
+        <div ref="feuille" class="bn-safe-pb-sheet w-full max-w-md rounded-t-hero bg-white px-4 pt-6 lg:rounded-hero">
             <p class="bn-title text-[22px]">{{ titre }}</p>
             <p class="mb-4 mt-1.5 text-muted">{{ texte }}</p>
             <button ref="premier" type="button" class="bn-btn w-full lg:w-full" @click="$emit('garder')">{{ garder }}</button>

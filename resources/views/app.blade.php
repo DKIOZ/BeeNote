@@ -7,6 +7,8 @@
         <title inertia>BeeNote</title>
 
         <meta name="theme-color" content="#17382C">
+        <!-- Pas de thème sombre : on empêche le navigateur d'assombrir de force la palette. -->
+        <meta name="color-scheme" content="only light">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <link rel="icon" href="/favicon.ico">
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">

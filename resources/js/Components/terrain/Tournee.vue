@@ -15,7 +15,7 @@ const enCours = computed(() => (state.visite ? ruchesDuRucher.value.find((r) => 
 const notesEnCours = computed(() => compterNotes(state.visite?.valeurs));
 const faites = computed(() => ruchesDuRucher.value.filter((r) => r.etat === 'done').length);
 // Une seule étiquette pour l'écran et le lecteur d'écran.
-const etiquette = (ruche) => (enCours.value?.id === ruche.id ? 'En cours' : prochaineRuche.value?.id === ruche.id ? `Maintenant, ${libelle(ruche).toLowerCase()}` : libelle(ruche));
+const etiquette = (ruche) => (enCours.value?.id === ruche.id ? 'En cours' : prochaineRuche.value?.id === ruche.id ? 'Maintenant' : libelle(ruche));
 const enTournee = computed(() => ruchesDuRucher.value.filter((r) => r.etat !== 'hors').length);
 const voixActive = computed(() => {
     try {
@@ -49,7 +49,7 @@ const basculerEcoute = () => (state.voix.ecoute ? arreterEcoute() : ecouter(page
         <section class="rounded-b-hero bg-forest px-5 pb-5 pt-2 text-white lg:rounded-hero">
             <button type="button" aria-label="Retour" class="-ml-3 flex h-12 w-12 items-center justify-center" @click="aller('accueil')"><Icon nom="retour" /></button>
             <h1 class="bn-title text-4xl leading-tight">{{ rucher.nom }}</h1>
-            <p class="mb-3 mt-1 text-sage">{{ faites }} {{ faites > 1 ? 'ruches' : 'ruche' }} sur {{ enTournee }} {{ faites > 1 ? 'visitées' : 'visitée' }}</p>
+            <p class="mb-3 mt-1 text-sage">{{ faites ? `${faites} ${faites > 1 ? 'ruches visitées' : 'ruche visitée'} sur ${enTournee}` : `Aucune ruche visitée sur ${enTournee}` }}</p>
 
             <div role="group" aria-label="Ruches du rucher" class="flex flex-wrap gap-1">
                 <button v-for="ruche in ruchesDuRucher" :key="ruche.id" type="button" :aria-label="`${ruche.nom}, ${etiquette(ruche)}`" class="flex flex-col items-center gap-0.5 text-sm font-semibold" :class="serree ? 'w-[76px]' : 'w-[104px]'" @click="commencer(ruche.id)">

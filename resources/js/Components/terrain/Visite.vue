@@ -59,7 +59,7 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
 </script>
 
 <template>
-    <div v-if="state.visite" class="pb-28">
+    <div v-if="state.visite" class="pb-44">
         <section class="rounded-b-hero bg-forest px-4 pb-4 pt-2 text-white lg:rounded-hero">
             <header class="-ml-2 flex items-center gap-2">
                 <button type="button" aria-label="Quitter la visite" class="flex h-12 w-12 flex-none items-center justify-center" @click="quitter = true"><Icon nom="retour" /></button>
@@ -82,7 +82,7 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
                 </div>
                 <div class="min-w-0 flex-1" aria-live="polite">
                     <p class="bn-title text-[22px] leading-tight">{{ statut.titre }}</p>
-                    <p class="mt-1 break-words" :class="statut.alerte ? 'text-[#FFD9BF]' : 'text-sage'">{{ statut.texte }}</p>
+                    <p class="mt-1 break-words" :class="statut.alerte ? 'text-peach-light' : 'text-sage'">{{ statut.texte }}</p>
                 </div>
             </div>
 
@@ -112,7 +112,6 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
                         <div class="mb-1 flex min-h-[28px] items-start justify-between">
                             <span :id="`g-${groupe.id}`" class="font-semibold text-ink">{{ groupe.label }}<span v-if="groupe.aide" class="block text-base font-normal text-muted">{{ groupe.aide }}</span></span>
                             <button v-if="valeurs[groupe.id]" type="button" class="-my-2 min-h-[44px] min-w-[76px] font-semibold text-muted underline" @click="effacerGroupe([groupe.id])">Effacer</button>
-                            <span v-else class="text-muted">Pas noté</span>
                         </div>
                         <div class="grid gap-2" :class="groupe.options.length === 3 ? 'grid-cols-3' : 'grid-cols-2'">
                             <button
@@ -135,7 +134,6 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
                     <div class="mb-1 flex min-h-[28px] items-start justify-between">
                         <span id="g-actions" class="font-semibold text-ink">J'ai fait<span class="block text-sm font-normal text-muted">hausse : étage ajouté pour stocker le miel</span></span>
                         <button v-if="actionsNotees" type="button" class="-my-2 min-h-[44px] min-w-[76px] font-semibold text-muted underline" @click="effacerGroupe(ACTIONS.map((a) => a.id))">Effacer</button>
-                        <span v-else class="text-muted">Pas noté</span>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <button v-for="action in ACTIONS" :key="action.id" type="button" :aria-pressed="!!valeurs[action.id]" class="bn-choix" :class="{ 'bn-choix-on': valeurs[action.id], 'bn-choix-frais': estDernier(`${action.id}:true`) }" @click="faire(action)">{{ action.text }}</button>
@@ -146,7 +144,6 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
                     <div class="mb-1 flex min-h-[28px] items-center justify-between">
                         <span id="g-prochaine" class="text-sm font-semibold text-muted">Prochaine visite</span>
                         <button v-if="valeurs.prochaine_visite_prevue" type="button" class="-my-2 min-h-[44px] min-w-[76px] font-semibold text-muted underline" @click="effacerGroupe(['prochaine_visite_prevue', '_semaines'])">Effacer</button>
-                        <span v-else class="text-muted">Pas noté</span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                         <button v-for="p in PROCHAINES" :key="p.semaines" type="button" :aria-pressed="prochaineChoisie(p)" class="bn-choix" :class="{ 'bn-choix-on': prochaineChoisie(p), 'bn-choix-frais': estDernier(`prochaine:${p.semaines}`) }" @click="planifier(p)">{{ p.text }}</button>
@@ -165,14 +162,29 @@ const actionsNotees = computed(() => ACTIONS.some((a) => valeurs.value[a.id]));
             </div>
         </div>
 
-        <div class="fixed bottom-0 left-0 right-0 z-30 bg-ground/95 px-4 pb-4 pt-3 lg:left-60">
+        <div class="bn-safe-pb fixed bottom-0 left-0 right-0 z-30 bg-ground/95 px-4 pt-3 lg:left-60">
             <div class="mx-auto max-w-xl">
-                <!-- Une fois la page défilée, l'état de la voix reste sous les yeux. L'annonce est déjà faite en haut. -->
-                <p v-if="voixActive && (voix.ecoute || voix.echo)" aria-hidden="true" class="mb-2 flex items-center gap-2 text-sm font-semibold" :class="statut.alerte ? 'text-rust' : 'text-forest'">
-                    <Icon v-if="voix.ecoute" nom="micro" :size="16" />
-                    <span class="min-w-0 flex-1 truncate">{{ statut.titre }} · {{ statut.texte }}</span>
-                    <span class="flex-none text-muted">{{ nbNotes }} {{ nbNotes > 1 ? 'points' : 'point' }}</span>
-                </p>
+                <!-- Toujours visible, même la page défilée : on sait si on est écouté, et on relance le micro sans remonter.
+                     L'annonce aux lecteurs d'écran est déjà faite en haut. -->
+                <div v-if="voixActive" class="mb-2 flex items-center gap-3">
+                    <button
+                        type="button"
+                        :aria-pressed="voix.ecoute"
+                        :aria-label="voix.ecoute ? 'Arrêter l\'écoute' : 'Commencer à écouter'"
+                        :disabled="voix.chargement"
+                        class="relative flex h-12 w-12 flex-none items-center justify-center rounded-full"
+                        :class="voix.ecoute ? 'bg-honey text-forest' : 'border-[1.5px] border-forest bg-white text-forest'"
+                        @click="basculer"
+                    >
+                        <span v-if="voix.ecoute && !voix.pause" aria-hidden="true" class="absolute inset-0 animate-bn-ring rounded-full bg-honey" />
+                        <Icon nom="micro" :size="22" class="relative" />
+                    </button>
+                    <p aria-hidden="true" class="min-w-0 flex-1 text-sm font-semibold leading-tight" :class="statut.alerte ? 'text-rust' : 'text-forest'">
+                        <span class="block">{{ statut.titre }}</span>
+                        <span class="block truncate font-normal text-muted">{{ statut.texte }}</span>
+                    </p>
+                    <span aria-hidden="true" class="flex-none text-sm font-semibold text-muted">{{ nbNotes }} {{ nbNotes > 1 ? 'points' : 'point' }}</span>
+                </div>
                 <button type="button" class="bn-btn w-full lg:w-full" @click="aller('recap')">Ruche terminée</button>
             </div>
         </div>

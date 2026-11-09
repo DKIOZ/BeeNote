@@ -64,7 +64,7 @@ onMounted(async () => {
         voixPrete.value = false;
     }
 
-    // « Prêt » seulement si le micro est vraiment autorisé.
+    // « Prêt » seulement si le micro est vraiment autorisé.
     try {
         const micro = await navigator.permissions?.query({ name: 'microphone' });
         if (micro && micro.state !== 'granted') {
@@ -75,7 +75,7 @@ onMounted(async () => {
     }
 });
 
-// Une coche ratée avec des gants se rattrape : « Annuler » reste quelques secondes.
+// Une coche ratée avec des gants se rattrape : « Annuler » reste quelques secondes.
 const cocher = (tache) => router.patch(route('taches.toggle', tache.id), {}, {
     preserveScroll: true,
     onSuccess: () => {
@@ -170,7 +170,7 @@ const annuler = () => {
                 </Link>
             </section>
 
-            <p v-if="faite" role="status" class="fixed bottom-24 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-2xl bg-forest px-4 py-2 text-white shadow-nav lg:bottom-6 lg:left-auto lg:w-96">
+            <p v-if="faite" role="status" class="fixed bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-2xl bg-forest px-4 py-2 text-white shadow-nav lg:bottom-6 lg:left-auto lg:w-96">
                 <span class="min-w-0 truncate">« {{ faite.titre }} » est faite</span>
                 <button type="button" class="min-h-[48px] flex-none px-2 font-bold text-honey underline" @click="annuler">Annuler</button>
             </p>

@@ -104,7 +104,7 @@ onBeforeUnmount(() => {
                 <span aria-hidden="true" class="absolute inset-3 rounded-2xl border-4 border-honey" />
             </div>
 
-            <p class="mx-6 mt-6 text-center text-lg" :class="erreur && 'font-semibold text-[#FFD9BF]'" role="status">{{ message }}</p>
+            <p class="mx-6 mt-6 text-center text-lg" :class="erreur && 'font-semibold text-peach-light'" role="status">{{ message }}</p>
             <p class="mx-6 mt-2 text-center text-sage">Fonctionne sans réseau.</p>
 
             <div class="mt-auto px-2 pt-8">

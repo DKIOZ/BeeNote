@@ -135,7 +135,7 @@ function enregistrer() {
                     <Field id="type_traitement" v-model="form.type_traitement" label="Contre" :options="[{ value: 'varroa', text: 'Varroa' }, { value: 'nosema', text: 'Nosémose' }, { value: 'loque', text: 'Loque' }, { value: 'preventif', text: 'Préventif' }, { value: 'frelon_asiatique', text: 'Frelon asiatique' }, { value: 'autre', text: 'Autre' }]" :erreur="form.errors.type_traitement" />
                     <Field id="dose" v-model="form.dosage" label="Dose" placeholder="Ex. : 5 ml" :erreur="form.errors.dosage" />
                     <Field id="lot" v-model="form.numero_lot" label="Numéro de lot" :erreur="form.errors.numero_lot" />
-                    <p v-if="!form.numero_lot" class="-mt-2 text-sm text-muted">Sans numéro de lot, le registre indiquera « lot non noté ». Il figure sur la boîte du médicament.</p>
+                    <p v-if="!form.numero_lot" class="-mt-2 text-sm text-muted">Sans numéro de lot, le registre indiquera « lot non noté ». Il figure sur la boîte du médicament.</p>
                     <Field id="date_t" v-model="form.date_traitement" type="date" label="Date" :max="aujourdhui" :erreur="form.errors.date_traitement" required />
                     <p class="text-muted">Ces informations alimentent votre registre.</p>
                 </template>

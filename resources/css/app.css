@@ -95,3 +95,18 @@
         @apply text-sm text-muted;
     }
 }
+
+/* iPhone : la page passe sous la barre d'accueil (viewport-fit=cover). Ce qui est collé en bas remonte d'autant. */
+@layer utilities {
+    .bn-safe-pb {
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .bn-safe-pb-sheet {
+        padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .bn-safe-pt {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+}

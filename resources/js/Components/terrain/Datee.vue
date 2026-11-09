@@ -60,7 +60,7 @@ async function continuer() {
             </fieldset>
         </div>
 
-        <div class="fixed bottom-0 left-0 right-0 z-30 bg-ground/95 px-4 pb-4 pt-3 lg:left-60">
+        <div class="bn-safe-pb fixed bottom-0 left-0 right-0 z-30 bg-ground/95 px-4 pt-3 lg:left-60">
             <div class="mx-auto max-w-xl">
                 <button type="button" class="bn-btn w-full lg:w-full" :disabled="!rucheId || !date" @click="continuer">Noter cette visite</button>
             </div>

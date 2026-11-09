@@ -31,6 +31,15 @@ export default {
                 cream: '#FFF0C7',
                 'cream-ink': '#6B4B00',
                 sage: '#C9D8D0',
+                // Bleu des visites et orangé des récoltes dans le registre et l'historique.
+                blue: '#2F6DB5',
+                'blue-soft': '#DCEAF8',
+                'blue-ink': '#1C5A99',
+                'honey-deep': '#E09A00',
+                // Texte d'alerte posé sur le vert forêt.
+                'peach-light': '#FFD9BF',
+                // Texte des liens du menu, sur le vert forêt.
+                'sage-light': '#E4ECE8',
             },
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],

@@ -3,14 +3,16 @@ import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Hex from '@/Components/Hex.vue';
 import Icon from '@/Components/Icon.vue';
-import { dateCourte } from '@/terrain/fields.js';
+import { dateCourte, jourLocal } from '@/terrain/fields.js';
 
 const props = defineProps({ ruche: Object, historique: Array, peutModifier: Boolean });
 
-const POINTS = { visite: 'bg-[#2F6DB5]', traitement: 'bg-late', recolte: 'bg-[#E09A00]', deplacement: 'bg-line' };
+const POINTS = { visite: 'bg-blue', traitement: 'bg-late', recolte: 'bg-honey-deep', deplacement: 'bg-line' };
 const TITRES = { visite: 'Visite', traitement: 'Traitement', recolte: 'Récolte', deplacement: 'Déplacement' };
 const lien = (ligne) => (ligne.type === 'visite' ? route('visites.show', ligne.id) : route('fiches.show', [ligne.type, ligne.id]));
 const cocher = (tache) => router.patch(route('taches.toggle', tache.id), {}, { preserveScroll: true });
+// Une date passée n'est plus une « prochaine » visite : on la dit en retard.
+const enRetard = () => props.ruche.prochaine_visite && props.ruche.prochaine_visite < jourLocal();
 const reine = () => [props.ruche.type && props.ruche.type[0].toUpperCase() + props.ruche.type.slice(1), props.ruche.annee_reine && `Reine ${props.ruche.annee_reine}${props.ruche.couleur_marquage_reine ? ', ' + props.ruche.couleur_marquage_reine : ''}`].filter(Boolean).join(' · ');
 </script>
 
@@ -30,7 +32,7 @@ const reine = () => [props.ruche.type && props.ruche.type[0].toUpperCase() + pro
                             <p class="text-sage">{{ ruche.rucher.nom }}<template v-if="ruche.etat === 'hors'"> · {{ ruche.statut === 'morte' ? 'Morte' : 'Inactive' }}, hors tournée</template><template v-if="reine()"> · {{ reine() }}</template></p>
                         </div>
                     </div>
-                    <p v-if="ruche.etat !== 'hors' && (ruche.prochaine_visite || ruche.rappel)" class="mt-2 text-sage">{{ ruche.prochaine_visite ? `Prochaine visite le ${dateCourte(ruche.prochaine_visite)}` : `À revoir vers le ${dateCourte(ruche.rappel)}` }}</p>
+                    <p v-if="ruche.etat !== 'hors' && (ruche.prochaine_visite || ruche.rappel)" class="mt-2" :class="enRetard() ? 'font-semibold text-peach-light' : 'text-sage'">{{ enRetard() ? `Visite en retard depuis le ${dateCourte(ruche.prochaine_visite)}` : ruche.prochaine_visite ? `Prochaine visite le ${dateCourte(ruche.prochaine_visite)}` : `À revoir vers le ${dateCourte(ruche.rappel)}` }}</p>
                     <p v-if="ruche.alertes?.length" class="mt-2 rounded-2xl bg-peach px-3 py-2 font-semibold text-rust">À surveiller : {{ ruche.alertes.join(', ') }}</p>
                     <Link v-if="ruche.etat !== 'hors'" :href="route('terrain', { ruche: ruche.id })" class="bn-btn-flat mt-3 lg:w-full">Commencer une visite</Link>
                 </section>

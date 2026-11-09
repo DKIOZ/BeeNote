@@ -12,7 +12,7 @@ const notes = computed(() => compterNotes(state.visite?.valeurs));
 
 <template>
     <div class="px-4 pb-4 pt-4 lg:px-0 lg:pt-0">
-        <h1 class="bn-title px-1 text-[28px]">Noter une visite</h1>
+        <h1 class="bn-title px-1 text-[28px]">Au rucher</h1>
 
         <section v-if="state.visite && ruche" class="mt-3 rounded-card bg-forest p-4 text-white">
             <p class="text-sm font-semibold text-sage">Visite en cours</p>

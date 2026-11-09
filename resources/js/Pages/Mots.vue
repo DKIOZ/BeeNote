@@ -65,14 +65,14 @@ const imprimer = () => window.print();
         <section class="rounded-b-hero bg-forest px-5 pb-5 pt-2 text-white print:hidden lg:rounded-hero">
             <Link :href="route('plus')" aria-label="Retour" class="-ml-3 flex h-12 w-12 items-center justify-center"><Icon nom="retour" /></Link>
             <p class="text-sage">Essai · mot {{ index + 1 }} sur {{ MOTS.length }}</p>
-            <p class="mt-1.5 text-[#E4ECE8]">Touchez le micro et dites :</p>
+            <p class="mt-1.5 text-sage-light">Touchez le micro et dites :</p>
             <h1 class="bn-title mb-3.5 mt-0.5 text-4xl leading-tight text-honey">« {{ mot }} »</h1>
             <button type="button" class="bn-btn-flat w-full gap-2.5 lg:w-full" :disabled="etat === 'chargement' || etat === 'ecoute'" @click="agir">
                 <Icon nom="micro" />
                 {{ LIBELLES[etat] ?? 'Réessayer' }}
             </button>
-            <p v-if="etat === 'faux'" class="mt-2.5 font-semibold text-[#FFD9BF]" role="alert">Entendu : « {{ entendu }} ». Redites la phrase, seule.</p>
-            <p v-if="etat === 'erreur'" class="mt-2.5 font-semibold text-[#FFD9BF]" role="alert">La voix n'est pas disponible ici. Vérifiez le micro, ou préparez le téléphone.</p>
+            <p v-if="etat === 'faux'" class="mt-2.5 font-semibold text-peach-light" role="alert">Entendu : « {{ entendu }} ». Redites la phrase, seule.</p>
+            <p v-if="etat === 'erreur'" class="mt-2.5 font-semibold text-peach-light" role="alert">La voix n'est pas disponible ici. Vérifiez le micro, ou préparez le téléphone.</p>
         </section>
 
         <section class="px-4 pt-4 lg:px-0">

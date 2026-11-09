@@ -7,7 +7,7 @@ const { state, rucher, ruchesDuRucher, enAttente, aller, arreterEcoute } = useTe
 const faites = computed(() => ruchesDuRucher.value.filter((r) => r.etat === 'done').length);
 const total = computed(() => ruchesDuRucher.value.filter((r) => r.etat !== 'hors').length);
 const reste = computed(() => ruchesDuRucher.value.filter((r) => r.etat === 'todo' || r.etat === 'late'));
-// Les tâches cochées pendant la tournée ne sont pas encore parties : elles ne sont plus « à retenir ».
+// Les tâches cochées pendant la tournée ne sont pas encore parties : elles ne sont plus « à retenir ».
 const cochees = computed(() => new Set(state.queue.flatMap((item) => item.taches_faites ?? [])));
 const titre = computed(() => {
     if (!faites.value) {
@@ -51,7 +51,7 @@ onMounted(() => arreterEcoute());
 
         <button v-if="enAttente.length" type="button" class="bn-btn-2 mx-4 mt-3 w-[calc(100%-2rem)] lg:mx-0 lg:w-full" @click="aller('synchro')">Voir ce qui reste à envoyer</button>
 
-        <div class="fixed bottom-0 left-0 right-0 z-30 bg-ground/95 px-4 pb-4 pt-3 lg:left-60">
+        <div class="bn-safe-pb fixed bottom-0 left-0 right-0 z-30 bg-ground/95 px-4 pt-3 lg:left-60">
             <div class="mx-auto max-w-xl">
                 <a v-if="state.enligne" href="/dashboard" class="bn-btn w-full lg:w-full">Terminer</a>
                 <button v-else type="button" class="bn-btn w-full lg:w-full" @click="aller('accueil')">Terminer</button>

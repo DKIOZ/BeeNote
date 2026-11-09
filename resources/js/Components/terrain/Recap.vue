@@ -92,7 +92,7 @@ const vide = computed(() => !lignes.value.length && !state.visite?.note && !stat
             <button type="button" :aria-pressed="faite(tache)" class="min-h-[48px] flex-none rounded-xl border-[1.5px] border-line px-3 font-semibold" :class="faite(tache) && 'border-forest bg-forest text-white'" @click="basculerTache(tache.id)">{{ faite(tache) ? 'Faite' : 'Marquer faite' }}</button>
         </section>
 
-        <div class="fixed bottom-0 left-0 right-0 z-30 bg-ground/95 px-4 pb-4 pt-3 lg:left-60">
+        <div class="bn-safe-pb fixed bottom-0 left-0 right-0 z-30 bg-ground/95 px-4 pt-3 lg:left-60">
             <div class="mx-auto flex max-w-xl flex-col gap-2">
                 <button type="button" class="bn-btn w-full lg:w-full" @click="valider">{{ vide ? 'Rien à signaler, enregistrer' : bouton }}</button>
                 <button type="button" class="bn-btn-2 lg:w-full" @click="corriger">{{ vide ? 'Revenir à la visite' : 'Corriger' }}</button>

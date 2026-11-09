@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import BackBar from '@/Components/BackBar.vue';
 import Hex from '@/Components/Hex.vue';
 import { createVoskEngine, micSupported } from '@/terrain/voice/engine.js';
 
@@ -117,9 +118,9 @@ const etapes = computed(() => [
 
 <template>
     <AppLayout title="Préparer le téléphone" sans-nav>
-        <header class="px-5 pb-2 pt-7 lg:px-0 lg:pt-0">
-            <h1 class="bn-title text-4xl leading-tight">Préparons votre téléphone</h1>
-            <p class="mt-2 text-lg text-muted">Au toucher, rien à faire : vos ruches sont déjà sur ce téléphone, même sans réseau. Pour noter à la voix, faites ces étapes chez vous, avec du réseau.</p>
+        <BackBar :href="route('dashboard')" retour="Retour à l'accueil" titre="Préparons votre téléphone" />
+        <header class="px-5 pb-2 lg:px-0">
+            <p class="text-lg text-muted">Au toucher, rien à faire : vos ruches sont déjà sur ce téléphone, même sans réseau. Pour noter à la voix, faites ces étapes chez vous, avec du réseau.</p>
         </header>
 
         <ol class="mx-4 mt-3 flex max-w-xl flex-col gap-3 lg:mx-0">
