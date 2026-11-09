@@ -10,7 +10,7 @@ import { getItem, removeItem, setItem, updateItem } from './store.js';
 // Champs de la file qui ne sont pas des observations : le reste redevient la visite si on la rouvre.
 const META = ['client_uuid', 'ruche_id', 'date_visite', 'heure_debut', 'taches_faites', 'note', 'nom', 'creee_le', 'refusee', 'recue', 'noteRefusee', 'complement', 'deja'];
 import { createVoskEngine, micSupported } from './voice/engine.js';
-import { matchPhrase } from './voice/phrases.js';
+import { matchPhrase, normalize } from './voice/phrases.js';
 
 const state = reactive({
     pret: false,
@@ -46,7 +46,7 @@ const state = reactive({
 
 let engine = null;
 let wakeLock = null;
-let parole = false;
+let parole = null;
 let historique = [];
 let terrainAffiche = false;
 let validationEnCours = false;
@@ -433,16 +433,24 @@ function dire(texte) {
     const message = new SpeechSynthesisUtterance(texte);
     message.lang = 'fr-FR';
     message.rate = 1.1;
-    // L'appli ne doit pas se comprendre elle-même.
-    parole = true;
-    message.onend = () => setTimeout(() => { parole = false; }, 300);
-    message.onerror = () => { parole = false; };
+    // L'appli ne doit pas se comprendre elle-même : on retient ce qu'elle dit.
+    // Le téléphone ne signale pas toujours la fin de la lecture, d'où un délai de secours.
+    const enCours = { texte: normalize(texte) };
+    parole = enCours;
+    const liberer = (delai) => setTimeout(() => { if (parole === enCours) parole = null; }, delai);
+    message.onend = () => liberer(300);
+    message.onerror = () => liberer(0);
+    liberer(1500 + texte.length * 90);
+    // Gardée en mémoire, sinon certains navigateurs l'oublient avant la fin.
+    enCours.message = message;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(message);
 }
 
 function surPhrase(texte) {
-    if (parole) {
+    // Pendant que l'appli parle, seul l'écho de sa phrase est ignoré : on peut enchaîner.
+    const entendu = normalize(texte);
+    if (parole && entendu && ` ${parole.texte} `.includes(` ${entendu} `)) {
         return;
     }
 

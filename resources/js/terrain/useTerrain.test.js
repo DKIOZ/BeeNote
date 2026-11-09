@@ -498,6 +498,39 @@ describe('commandes selon l\'écran', () => {
         expect(ecouteur).toHaveBeenCalledOnce();
     });
 
+    it('enchaîne deux mots pendant que l\'appli répète le premier', async () => {
+        localStorage.setItem('bn-echo', '1');
+        // Le téléphone ne signale pas toujours la fin de la phrase lue.
+        window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+        const { terrain } = await charger({ enLigne: false });
+        await terrain.ecouter('modele');
+        terrain.choisirRucher(1);
+        await terrain.commencer(11);
+
+        moteur.phrase('reine vue');
+        // Le micro entend l'appli répéter : ce n'est pas un nouveau mot.
+        moteur.phrase('reine vue');
+        moteur.phrase('calme');
+
+        expect(terrain.state.visite.valeurs.reine_vue).toBe('ok');
+        expect(terrain.state.visite.valeurs.humeur_colonie).toBe('calme');
+        expect(terrain.state.voix.echecs).toBe(0);
+    });
+
+    it('n\'obéit pas à un mot que l\'appli dit elle-même', async () => {
+        localStorage.setItem('bn-echo', '1');
+        window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+        const { terrain } = await charger({ enLigne: false });
+        await terrain.ecouter('modele');
+        terrain.choisirRucher(1);
+        await terrain.commencer(11);
+
+        moteur.phrase('pause');
+        moteur.phrase('reprends');
+
+        expect(terrain.state.voix.pause).toBe(true);
+    });
+
     it('signale un micro coupé par le téléphone', async () => {
         const { terrain } = await charger({ enLigne: false });
         await terrain.ecouter('modele');
