@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Rucher;
+use App\Services\RegistreOfficiel;
 use App\Services\RegistreService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -60,6 +61,10 @@ class RegistreController extends Controller
         $nom = 'registre-'.$data['depuis'].'-'.$data['jusqu'];
 
         if ($data['format'] === 'pdf') {
+            // Le registre est celui de l'exploitation : il porte le nom et le NAPI de son propriétaire,
+            // même quand c'est un membre de l'équipe qui le télécharge.
+            $titulaire = $request->user()->currentTeam?->owner ?? $request->user();
+
             // Au-delà, la mise en page PDF épuise la mémoire du serveur. Le tableur n'a pas de limite.
             // Les notes longues pèsent autant que des lignes : on compte aussi le texte.
             if ($lignes->count() > self::PDF_MAX || $lignes->sum(fn ($ligne) => mb_strlen($ligne['detail'])) > self::PDF_MAX_CARACTERES) {
@@ -67,12 +72,16 @@ class RegistreController extends Controller
             }
 
             return Pdf::loadView('pdf.registre', [
+                // Les rubriques du registre d'élevage, puis le journal des visites en annexe.
+                'registre' => RegistreOfficiel::pourEquipe($teamId, $data['depuis'], $data['jusqu'], $rucherId),
                 // Dans le PDF, une note est coupée : le tableur la donne en entier.
-                'lignes' => $lignes->map(fn ($ligne) => [...$ligne, 'detail' => Str::limit($ligne['detail'], 400)]),
-                'types' => self::TYPES,
+                'lignes' => $lignes->where('type', 'visite')->map(fn ($ligne) => [...$ligne, 'detail' => Str::limit($ligne['detail'], 400)]),
                 'depuis' => $data['depuis'],
                 'jusqu' => $data['jusqu'],
-                'proprietaire' => $request->user()->name,
+                'rucher' => $rucherId ? Rucher::find($rucherId)?->nom : null,
+                'proprietaire' => $titulaire->name,
+                'equipe' => $request->user()->currentTeam?->name,
+                'identite' => $titulaire->only(['adresse', 'telephone', 'napi', 'siret']),
             ])->download($nom.'.pdf')->header('Cache-Control', 'private, no-store');
         }
 

@@ -575,17 +575,77 @@ describe('registre et export', function () {
         visitePour($ruche, $alice);
 
         $vue = view('pdf.registre', [
+            'registre' => \App\Services\RegistreOfficiel::pourEquipe($alice->current_team_id, '2020-01-01', '2030-01-01'),
             'lignes' => \App\Services\RegistreService::pourEquipe($alice->current_team_id),
-            'types' => ['visite' => 'Visite'],
             'depuis' => '2020-01-01',
             'jusqu' => '2030-01-01',
+            'rucher' => null,
             'proprietaire' => $alice->name,
+            'equipe' => '<b>Équipe</b>',
+            'identite' => ['napi' => '<i>A1</i>'],
         ])->render();
-        expect($vue)->not->toContain('<script>alert')->toContain('&lt;script&gt;');
+        expect($vue)->toContain('&lt;i&gt;A1');
+        expect($vue)->not->toContain('<script>alert')->toContain('&lt;script&gt;')->not->toContain('<b>Équipe');
 
         $reponse = $this->actingAs($alice)->get(route('registre.export', ['format' => 'pdf', 'depuis' => '2020-01-01', 'jusqu' => now()->toDateString()]));
         $reponse->assertOk();
         expect($reponse->headers->get('Content-Type'))->toContain('pdf');
+    });
+
+    it('range les saisies dans les rubriques du registre d\'élevage', function () {
+        $alice = apiculteur();
+        $rucher = rucherDe($alice, 2);
+        [$r1, $r2] = $rucher->ruches;
+        $jour = now()->toDateString();
+
+        $this->actingAs($alice)->post(route('noter.store', 'traitement'), [
+            'ruche_ids' => [$r1->id, $r2->id],
+            'date_traitement' => $jour,
+            'type_traitement' => 'varroa',
+            'produit_utilise' => 'Apivar',
+            'dosage' => '2 lanières',
+            'numero_lot' => 'L42',
+        ]);
+        visitePour($r1, $alice, ['varroas_observes' => 'ok', 'nourrissement_effectue' => true, 'type_nourrissement' => 'sirop', 'quantite_nourrissement' => 2, 'reserves_miel' => 'insuffisantes']);
+        visitePour($r2, $alice, ['traitement_applique' => true, 'date_visite' => now()->subDay()->toDateString()]);
+
+        $registre = \App\Services\RegistreOfficiel::pourEquipe($alice->current_team_id, now()->subMonth()->toDateString(), $jour);
+
+        expect($registre['nb_ruches'])->toBe(2);
+        expect($registre['traitements_varroa'])->toHaveCount(1);
+        expect($registre['traitements_varroa'][0])->toMatchArray(['produit' => 'Apivar', 'dosage' => '2 lanières', 'remarques' => 'Lot L42']);
+        expect($registre['traitements_varroa'][0]['ruches'])->toStartWith('2 ruches');
+        expect($registre['varroa'][0]['resultats'])->toContain('varroas vus');
+        expect($registre['nourrissements'][0])->toMatchArray(['cause' => 'Réserves faibles', 'produit' => 'Sirop, 2 kg en tout']);
+        expect($registre['sanitaires'][0]['traitement'])->toBe('Produit à compléter');
+
+        $this->get(route('registre.export', ['format' => 'pdf', 'depuis' => now()->subMonth()->toDateString(), 'jusqu' => $jour]))->assertOk();
+    });
+
+    it('garde au profil l\'identité du registre et la reprend dans le PDF du propriétaire', function () {
+        $alice = apiculteur();
+        rucherDe($alice);
+
+        $this->actingAs($alice)->put('/user/profile-information', [
+            'name' => $alice->name, 'email' => $alice->email,
+            'napi' => ' a1234567 ', 'siret' => '123 456 789 00012', 'adresse' => '4 rue des Abeilles, Privas', 'telephone' => '',
+        ])->assertSessionHasNoErrors();
+
+        expect($alice->fresh()->only(['napi', 'siret', 'adresse', 'telephone']))
+            ->toBe(['napi' => 'A1234567', 'siret' => '123 456 789 00012', 'adresse' => '4 rue des Abeilles, Privas', 'telephone' => null]);
+
+        $this->put('/user/profile-information', ['name' => $alice->name, 'email' => $alice->email, 'napi' => '<script>'])
+            ->assertSessionHasErrorsIn('updateProfileInformation', 'napi');
+
+        // Un membre de l'équipe télécharge le registre de l'exploitation : il porte le NAPI d'Alice.
+        $editeur = editeurDe($alice);
+        $donnees = null;
+        \Illuminate\Support\Facades\View::composer('pdf.registre', function ($vue) use (&$donnees) {
+            $donnees ??= $vue->getData();
+        });
+        $this->actingAs($editeur)->get(route('registre.export', ['format' => 'pdf', 'depuis' => '2020-01-01', 'jusqu' => now()->toDateString()]))->assertOk();
+
+        expect(view('pdf.registre', $donnees)->render())->toContain('A1234567')->toContain('4 rue des Abeilles')->toContain(e($alice->name));
     });
 
     it('ne laisse pas exporter le rucher d\'une autre équipe', function () {

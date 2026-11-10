@@ -9,7 +9,16 @@ import { clearAll } from '@/terrain/store.js';
 
 const user = usePage().props.auth.user;
 
-const profil = useForm({ _method: 'PUT', name: user.name, email: user.email, current_password: '' });
+const profil = useForm({
+    _method: 'PUT',
+    name: user.name,
+    email: user.email,
+    current_password: '',
+    adresse: user.adresse ?? '',
+    telephone: user.telephone ?? '',
+    napi: user.napi ?? '',
+    siret: user.siret ?? '',
+});
 const motDePasse = useForm({ current_password: '', password: '', password_confirmation: '' });
 const suppression = useForm({ password: '' });
 const confirmation = ref(false);
@@ -47,6 +56,16 @@ function supprimer() {
                 <Field id="name" v-model="profil.name" label="Nom" autocomplete="name" :erreur="profil.errors.name" required />
                 <Field id="email" v-model="profil.email" type="email" label="E-mail" autocomplete="email" :erreur="profil.errors.email" required />
                 <Field v-if="profil.email.trim().toLowerCase() !== user.email.toLowerCase()" id="mdp-actuel" v-model="profil.current_password" type="password" label="Mot de passe actuel, pour changer d'adresse" autocomplete="current-password" :erreur="profil.errors.current_password" required />
+
+                <fieldset class="m-0 mt-2 flex flex-col gap-3.5 rounded-2xl border-0 bg-cream p-4">
+                    <legend class="float-left mb-1 p-0 font-bold">Pour le registre d'élevage</legend>
+                    <p class="clear-left -mt-2 text-sm text-cream-ink">Facultatif. Repris en tête du registre PDF, pour ne pas les recopier à la main.</p>
+                    <Field id="napi" v-model="profil.napi" label="N° d'apiculteur (NAPI)" placeholder="A1234567" autocomplete="off" :erreur="profil.errors.napi" />
+                    <Field id="siret" v-model="profil.siret" label="SIRET ou NUMAGRIT" inputmode="numeric" autocomplete="off" :erreur="profil.errors.siret" />
+                    <Field id="adresse" v-model="profil.adresse" label="Adresse" autocomplete="street-address" :erreur="profil.errors.adresse" />
+                    <Field id="telephone" v-model="profil.telephone" type="tel" label="Téléphone" autocomplete="tel" :erreur="profil.errors.telephone" />
+                </fieldset>
+
                 <p v-if="profil.recentlySuccessful" role="status" class="font-semibold text-mint-ink">Enregistré.</p>
                 <button type="submit" class="bn-btn-2" :disabled="profil.processing">Enregistrer</button>
             </form>
