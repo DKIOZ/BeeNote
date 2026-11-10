@@ -11,6 +11,7 @@ defineProps({
         <template v-else-if="nom === 'ruchers'"><path d="M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></template>
         <template v-else-if="nom === 'micro'"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3" /></template>
         <template v-else-if="nom === 'registre'"><path d="M6 3h9l4 4v14H6z" /><path d="M9 13h7" /><path d="M9 17h7" /></template>
+        <template v-else-if="nom === 'academie'"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v15H6.5A2.5 2.5 0 0 0 4 19.5z" /><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5" /></template>
         <template v-else-if="nom === 'plus'"><circle cx="5" cy="12" r="1.6" fill="currentColor" /><circle cx="12" cy="12" r="1.6" fill="currentColor" /><circle cx="19" cy="12" r="1.6" fill="currentColor" /></template>
         <template v-else-if="nom === 'qr'"><path d="M4 8V5a1 1 0 0 1 1-1h3" /><path d="M16 4h3a1 1 0 0 1 1 1v3" /><path d="M20 16v3a1 1 0 0 1-1 1h-3" /><path d="M8 20H5a1 1 0 0 1-1-1v-3" /><path d="M4 12h16" /></template>
         <template v-else-if="nom === 'retour'"><path d="M15 5l-7 7 7 7" /></template>

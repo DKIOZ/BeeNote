@@ -6,6 +6,7 @@ import Accueil from '@/Components/terrain/Accueil.vue';
 import Aide from '@/Components/terrain/Aide.vue';
 import Datee from '@/Components/terrain/Datee.vue';
 import Details from '@/Components/terrain/Details.vue';
+import Fiche from '@/Components/terrain/Fiche.vue';
 import Fin from '@/Components/terrain/Fin.vue';
 import Note from '@/Components/terrain/Note.vue';
 import Recap from '@/Components/terrain/Recap.vue';
@@ -17,7 +18,7 @@ import { useTerrain } from '@/terrain/useTerrain.js';
 
 const { state, initialiser, arreterEcoute, confirmerChangement, annulerChangement, signalerAffichage } = useTerrain();
 
-const VUES = { accueil: Accueil, tournee: Tournee, visite: Visite, details: Details, note: Note, aide: Aide, recap: Recap, fin: Fin, datee: Datee, synchro: Synchro, scanner: Scanner };
+const VUES = { accueil: Accueil, tournee: Tournee, visite: Visite, details: Details, note: Note, aide: Aide, recap: Recap, fin: Fin, datee: Datee, synchro: Synchro, scanner: Scanner, fiche: Fiche };
 
 const vue = computed(() => VUES[state.vue] ?? Accueil);
 const sansNav = computed(() => !['accueil', 'tournee'].includes(state.vue));

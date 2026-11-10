@@ -80,6 +80,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::inertia('demarrage', 'Demarrage')->name('demarrage');
     Route::inertia('mots', 'Mots')->name('mots');
 
+    // Les fiches vivent dans le code de l'appli : la page reçoit seulement leur identifiant.
+    Route::inertia('academie', 'Academie/Index')->name('academie.index');
+    Route::get('academie/{fiche}', fn (string $fiche) => Inertia::render('Academie/Fiche', ['id' => $fiche]))
+        ->where('fiche', '[a-z0-9-]{1,60}')
+        ->name('academie.show');
+
     Route::get('terrain', [TerrainController::class, 'show'])->name('terrain');
     Route::get('terrain/donnees', [TerrainController::class, 'donnees'])->middleware('throttle:terrain-donnees')->name('terrain.donnees');
     Route::post('terrain/sync', [TerrainController::class, 'sync'])->middleware('throttle:terrain-envoi')->name('terrain.sync');

@@ -68,6 +68,15 @@ const demanderDeconnexion = async () => {
         </header>
 
         <div class="flex flex-col gap-3.5 px-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:px-0">
+            <!-- Sur téléphone, le registre a quitté la barre du bas pour l'académie : il reste en tête ici. -->
+            <Link :href="route('registre.index')" class="bn-card flex min-h-[72px] items-center gap-3.5 px-4 py-3 lg:hidden">
+                <span aria-hidden="true" class="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-cream text-forest"><Icon nom="registre" /></span>
+                <span class="min-w-0 flex-1">
+                    <span class="block font-bold">Registre d'élevage</span>
+                    <span class="block text-sm text-muted">Visites, traitements, récoltes et export</span>
+                </span>
+                <Icon nom="suite" :size="20" />
+            </Link>
             <section class="bn-card px-4 py-1">
                 <h2 class="mb-0.5 mt-3 text-sm font-bold text-muted">Au rucher, sur cet appareil</h2>
                 <button v-for="reglage in reglages" :key="reglage.cle" type="button" role="switch" :aria-checked="reglage.on" class="flex min-h-[56px] w-full items-center justify-between gap-3 border-b border-hairline text-left font-semibold" :class="reglage.telephone && 'lg:hidden'" @click="basculer(reglage)">

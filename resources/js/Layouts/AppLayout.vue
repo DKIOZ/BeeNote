@@ -16,13 +16,16 @@ const items = [
     { nom: 'accueil', label: 'Accueil', href: () => route('dashboard'), prefixes: ['/dashboard', '/taches'] },
     { nom: 'ruchers', label: 'Ruchers', href: () => route('ruchers.index'), prefixes: ['/ruchers', '/ruches', '/visites', '/noter', '/fiches', '/terrain', '/scan'] },
     { nom: 'registre', label: 'Registre', href: () => route('registre.index'), prefixes: ['/registre'] },
+    { nom: 'academie', label: 'Académie', href: () => route('academie.index'), prefixes: ['/academie'] },
     { nom: 'plus', label: 'Plus', labelPc: 'Réglages', href: () => route('plus'), prefixes: ['/plus', '/user', '/corbeille', '/mots', '/demarrage', '/etiquettes'] },
 ];
 
 // Sur PC, les QR codes ont leur propre entrée : Réglages ne s'allume pas en même temps.
 // Sur téléphone, le mode terrain a son bouton : le micro.
+// Sur téléphone, l'académie prend la place du registre, qui se range dans Plus.
+const itemsMobile = items.filter((item) => item.nom !== 'registre');
 const auRucher = computed(() => actif('/terrain', '/scan'));
-const actifMobile = (item) => actif(...item.prefixes.filter((prefixe) => !['/terrain', '/scan'].includes(prefixe)));
+const actifMobile = (item) => actif(...[...item.prefixes, ...(item.nom === 'plus' ? ['/registre'] : [])].filter((prefixe) => !['/terrain', '/scan'].includes(prefixe)));
 const itemsPc = computed(() => items.filter((item) => item.nom !== 'plus'));
 const reglages = items.find((item) => item.nom === 'plus');
 const actifPc = (item) => actif(...item.prefixes.filter((prefixe) => prefixe !== '/etiquettes'));
@@ -101,7 +104,7 @@ watch(flash, (valeur) => {
             aria-label="Navigation principale"
             class="fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-3 right-3 z-40 flex h-[72px] items-stretch rounded-3xl bg-white shadow-nav lg:hidden"
         >
-            <template v-for="(item, index) in items" :key="item.nom">
+            <template v-for="(item, index) in itemsMobile" :key="item.nom">
                 <Link
                     v-if="index === 2"
                     :href="route('terrain')"

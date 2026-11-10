@@ -666,3 +666,32 @@ describe('panel 2 : tour 2', () => {
         expect(await store.getItem('compte:1')).toBeUndefined();
     });
 });
+
+describe('fiche de l\'académie pendant la visite', () => {
+    it('s\'ouvre depuis le récapitulatif et y revient, même sans réseau', async () => {
+        const { terrain } = await charger({ enLigne: false });
+        terrain.choisirRucher(1);
+        await terrain.commencer(11);
+        terrain.aller('recap');
+
+        terrain.ouvrirFiche('essaimage');
+        expect(terrain.state.vue).toBe('fiche');
+        expect(terrain.state.fiche).toBe('essaimage');
+
+        terrain.fermerFiche();
+        expect(terrain.state.vue).toBe('recap');
+        expect(terrain.state.visite.ruche_id).toBe(11);
+    });
+
+    it('se referme quand on dit « compris »', async () => {
+        const { terrain } = await charger({ enLigne: false });
+        await terrain.ecouter('modele');
+        terrain.choisirRucher(1);
+        await terrain.commencer(11);
+        terrain.ouvrirFiche('varroa');
+
+        moteur.phrase('compris');
+
+        expect(terrain.state.vue).toBe('visite');
+    });
+});

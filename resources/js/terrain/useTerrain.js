@@ -42,6 +42,10 @@ const state = reactive({
         dernier: null,
         coupee: false,
     },
+
+    // Fiche de l'académie ouverte pendant la visite, et l'écran où revenir ensuite.
+    fiche: null,
+    ficheRetour: null,
 });
 
 let engine = null;
@@ -53,8 +57,8 @@ let validationEnCours = false;
 let nouvelEssai = null;
 
 const VUES_DE_VISITE = ['visite', 'details', 'note', 'recap'];
-const VUES = ['accueil', 'tournee', 'datee', 'synchro', 'scanner', 'aide', 'fin', ...VUES_DE_VISITE];
-const VUES_ECRAN_ALLUME = ['tournee', 'aide', ...VUES_DE_VISITE];
+const VUES = ['accueil', 'tournee', 'datee', 'synchro', 'scanner', 'aide', 'fin', 'fiche', ...VUES_DE_VISITE];
+const VUES_ECRAN_ALLUME = ['tournee', 'aide', 'fiche', ...VUES_DE_VISITE];
 
 function lireReglage(cle, defaut = '1') {
     try {
@@ -215,6 +219,9 @@ function vueValide(demandee) {
 
     if (!VUES.includes(vue)) {
         return 'accueil';
+    }
+    if (vue === 'fiche' && !state.fiche) {
+        return state.visite ? 'visite' : rucher.value ? 'tournee' : 'accueil';
     }
     if (VUES_DE_VISITE.includes(vue) && !state.visite) {
         return rucher.value ? 'tournee' : 'accueil';
@@ -425,8 +432,9 @@ function confirmer(texte, aVoixHaute) {
     }
 }
 
-function dire(texte) {
-    if (!('speechSynthesis' in window) || !lireReglage('bn-echo')) {
+// « demande » : lecture voulue par l'apiculteur (une fiche), faite même sans l'écho des mots.
+function dire(texte, demande = false) {
+    if (!('speechSynthesis' in window) || (!demande && !lireReglage('bn-echo'))) {
         return;
     }
 
@@ -554,6 +562,8 @@ function executer(action) {
         case 'compris':
             if (state.vue === 'aide') {
                 revenir();
+            } else if (state.vue === 'fiche') {
+                fermerFiche();
             }
             break;
         default:
@@ -562,6 +572,22 @@ function executer(action) {
 
 function revenir() {
     aller(state.visite ? 'visite' : rucher.value ? 'tournee' : 'accueil');
+}
+
+function ouvrirFiche(id) {
+    state.fiche = id;
+    state.ficheRetour = state.vue === 'fiche' ? state.ficheRetour : state.vue;
+    aller('fiche');
+}
+
+function fermerFiche() {
+    window.speechSynthesis?.cancel();
+    const retour = vueValide(state.ficheRetour ?? '');
+    if (retour === 'fiche') {
+        revenir();
+    } else {
+        aller(retour);
+    }
 }
 
 async function ecouter(modelUrl) {
@@ -1052,6 +1078,9 @@ export function useTerrain() {
         abandonnerVisite,
         terminerRucher,
         revenir,
+        ouvrirFiche,
+        fermerFiche,
+        dire,
         ajouterNote,
         basculerTache,
         envoyer,
